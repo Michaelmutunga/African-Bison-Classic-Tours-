@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+:root {
+  --bison-ink: #14120f;
+  --bison-ivory: #faf7f1;
+  --bison-sand: #e4d9c4;
+  --bison-earth: #5c6650;
+  --bison-clay: #b4552d;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bison-ivory);
+  color: var(--bison-ink);
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+}

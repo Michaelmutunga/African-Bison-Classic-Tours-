@@ -1,0 +1,57 @@
+{
+  "name": "african-bison-classic-tours",
+  "version": "0.1.0",
+  "private": true,
+  "description": "African Bison Classic Tours — premium safari planning and reservation platform",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --webpack",
+    "build": "prisma generate && next build --webpack",
+    "start": "next start",
+    "lint": "eslint app lib prisma scripts tests e2e --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma migrate reset --force",
+    "create-admin": "tsx scripts/create-admin.ts",
+    "docker:build": "docker build -t african-bison-classic-tours .",
+    "docker:run": "docker compose up --build",
+    "audit": "npm audit --audit-level=moderate"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Michaelmutunga/African-Bison-Classic-Tours-.git"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@prisma/client": "^6.4.1",
+    "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
+    "next": "^16.3.6",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@tailwindcss/postcss": "^4.1.12",
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.28.0",
+    "eslint-config-next": "^16.3.6",
+    "postcss": "^8.5.3",
+    "prettier": "^3.5.3",
+    "prisma": "^6.4.1",
+    "tailwindcss": "^4.1.12",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

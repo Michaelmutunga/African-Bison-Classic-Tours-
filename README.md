@@ -37,4 +37,12 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 0 foundation**.
+See `Agents.md`. Current status: **Phase 1 design system and public shell**.
+
+## Design system
+
+Tokens and type scale live in `app/globals.css` (Tailwind v4 `@theme`).
+Accessible primitives live in `components/ui/`. Site chrome in
+`components/site-header.tsx` / `components/site-footer.tsx`.
+Palette: ink, ivory, parchment, sand, earth, bark, clay. Type: Fraunces
+(display) + Inter (body).

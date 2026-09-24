@@ -15,6 +15,26 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 }
 
+model ContactInquiry {
+  id               String   @id @default(cuid())
+  reference        String   @unique
+  name             String
+  email            String
+  phone            String?
+  country          String?
+  destination      String?
+  travelDates      String?
+  travellers       String?
+  tourSlug         String?
+  message          String
+  preferredContact String?
+  status           String   @default("new")
+  createdAt        DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([email])
+}
+
 model AuditLog {
   id         String   @id @default(cuid())
   actor      String

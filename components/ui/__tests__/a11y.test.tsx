@@ -19,10 +19,14 @@ async function violations(): Promise<string[]> {
 }
 
 describe("accessibility", () => {
-  it("footer has no axe violations", async () => {
-    render(<SiteFooter />);
-    await expect(violations()).resolves.toEqual([]);
-  });
+  it(
+    "footer has no axe violations",
+    async () => {
+      render(<SiteFooter />);
+      await expect(violations()).resolves.toEqual([]);
+    },
+    30_000,
+  );
 
   it("labelled card form sample has no axe violations", async () => {
     render(

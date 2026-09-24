@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { PostCard } from "@/components/cards";
 import { MarketingShell } from "@/components/marketing-shell";
-import { EmptyState } from "@/components/ui/states";
+import { posts } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Journal",
-  description: "Safari planning guides, migration notes and East African travel stories.",
+  description:
+    "Safari planning guides, migration notes, costs, packing and East African travel stories from African Bison Classic Tours.",
 };
 
 export default function BlogPage() {
@@ -12,12 +14,13 @@ export default function BlogPage() {
     <MarketingShell
       eyebrow="Journal"
       title="Notes from the field"
-      lede="The travel-guide library migrates in Phase 2 with cleaned, de-duplicated articles."
+      lede={`${posts.length} planning guides and field notes, migrated from our travel library and cleaned of duplication.`}
     >
-      <EmptyState
-        title="Articles coming in Phase 2"
-        description="Migration seasons, packing, Big Five, honeymoons, beach extensions and responsible tourism."
-      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {posts.map((post) => (
+          <PostCard key={post.slug} post={post} />
+        ))}
+      </div>
     </MarketingShell>
   );
 }

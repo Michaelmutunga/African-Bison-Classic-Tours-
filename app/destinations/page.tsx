@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { DestinationCard } from "@/components/cards";
 import { MarketingShell } from "@/components/marketing-shell";
-import { EmptyState } from "@/components/ui/states";
+import { destinations } from "@/lib/content";
 
 export const metadata: Metadata = {
   title: "Destinations",
   description:
-    "Maasai Mara, Amboseli, Serengeti, Ngorongoro and beyond — East African destinations.",
+    "Maasai Mara, Amboseli, Serengeti, Ngorongoro and beyond — East African destinations from African Bison Classic Tours.",
 };
 
 export default function DestinationsPage() {
@@ -13,12 +14,13 @@ export default function DestinationsPage() {
     <MarketingShell
       eyebrow="Destinations"
       title="Where the journeys go"
-      lede="Destination guides with maps, seasons and planning notes arrive in Phase 2."
+      lede="Sixteen parks, reserves, lakes, mountains and one remarkable city — the ground our itineraries cover."
     >
-      <EmptyState
-        title="Destination guides coming in Phase 2"
-        description="Maasai Mara, Amboseli, Serengeti, Ngorongoro, Tarangire, Manyara, Nakuru and more."
-      />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {destinations.map((destination) => (
+          <DestinationCard key={destination.slug} destination={destination} />
+        ))}
+      </div>
     </MarketingShell>
   );
 }

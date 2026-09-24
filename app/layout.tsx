@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { JsonLd, organizationJsonLd } from "@/components/json-ld";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
 
 const display = Fraunces({
   subsets: ["latin"],
@@ -29,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${sans.variable}`}>
       <body>
+        <JsonLd data={organizationJsonLd(SITE_URL)} />
         <a
           href="#content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:bg-ivory focus:px-4 focus:py-2"

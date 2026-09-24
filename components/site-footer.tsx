@@ -2,10 +2,20 @@ import Link from "next/link";
 import { Container } from "@/components/ui/layout";
 
 const SAFARIS = [
-  { href: "/tours", label: "Kenya safaris" },
-  { href: "/tours", label: "Tanzania safaris" },
-  { href: "/tours", label: "Kenya + Tanzania" },
+  { href: "/tours?category=kenya", label: "Kenya safaris" },
+  { href: "/tours?category=tanzania", label: "Tanzania safaris" },
+  { href: "/tours?category=kenya-tanzania", label: "Kenya + Tanzania" },
+  { href: "/tours?category=nairobi-day", label: "Nairobi day experiences" },
   { href: "/destinations", label: "Destinations" },
+  { href: "/experiences", label: "Day experiences" },
+] as const;
+
+const COMPANY = [
+  { href: "/about", label: "About us" },
+  { href: "/blog", label: "Journal" },
+  { href: "/faq", label: "FAQ" },
+  { href: "/travel-information", label: "Travel information" },
+  { href: "/contact", label: "Contact" },
 ] as const;
 
 export function SiteFooter() {
@@ -34,16 +44,13 @@ export function SiteFooter() {
         <nav aria-label="Company">
           <p className="type-label text-sand">Company</p>
           <ul className="type-small mt-3 space-y-2">
-            <li>
-              <Link href="/blog" className="text-ivory/80 hover:text-ivory">
-                Journal
-              </Link>
-            </li>
-            <li>
-              <Link href="/contact" className="text-ivory/80 hover:text-ivory">
-                Contact
-              </Link>
-            </li>
+            {COMPANY.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="text-ivory/80 hover:text-ivory">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
           </ul>
         </nav>
         <div>

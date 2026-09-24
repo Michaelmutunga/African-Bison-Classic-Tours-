@@ -37,7 +37,7 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 1 design system and public shell**.
+See `Agents.md`. Current status: **Phase 2 public website and content**.
 
 ## Design system
 

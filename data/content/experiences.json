@@ -1,0 +1,42 @@
+{
+  "migratedAt": "2026-09-24",
+  "note": "Nairobi day experiences listed on the live homepage and 1-day tour page. Details are short factual summaries.",
+  "experiences": [
+    {
+      "slug": "nairobi-national-park",
+      "name": "Nairobi National Park",
+      "location": "Nairobi",
+      "excerpt": "Lions, rhinos and buffalo with a city skyline — the world's only wildlife capital national park, minutes from downtown."
+    },
+    {
+      "slug": "giraffe-centre",
+      "name": "Giraffe Centre",
+      "location": "Karen, Nairobi",
+      "excerpt": "Hand-feed endangered Rothschild's giraffes and learn about the breeding programme."
+    },
+    {
+      "slug": "sheldrick-elephant-orphanage",
+      "name": "Sheldrick Elephant Orphanage",
+      "location": "Nairobi National Park",
+      "excerpt": "Visit rescued baby elephants at the world-famous rehabilitation project during the public viewing hour."
+    },
+    {
+      "slug": "nairobi-national-museum",
+      "name": "Nairobi National Museum",
+      "location": "Museum Hill, Nairobi",
+      "excerpt": "Kenya's natural and cultural heritage — fossils, birds, art and history under one roof."
+    },
+    {
+      "slug": "bomas-of-kenya",
+      "name": "Bomas of Kenya",
+      "location": "Langata, Nairobi",
+      "excerpt": "Traditional homesteads and energetic cultural dances from Kenya's communities."
+    },
+    {
+      "slug": "carnivore-restaurant",
+      "name": "Carnivore Restaurant",
+      "location": "Langata, Nairobi",
+      "excerpt": "Nairobi's legendary nyama-choma feast — meats carved tableside in a safari atmosphere."
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "migratedAt": "2026-09-24",
+  "note": "Hand-written from verified live-site copy (category pages and tour introductions). No sightings guaranteed; wording uses 'known for' / 'home to'.",
+  "destinations": [
+    {
+      "slug": "masai-mara",
+      "name": "Maasai Mara National Reserve",
+      "country": "Kenya",
+      "excerpt": "Kenya's most famous reserve — sweeping savannah known for big cats, large herds and the July-to-October wildebeest migration river crossings.",
+      "highlights": ["Big cats", "Wildebeest migration (seasonal)", "Balloon safaris", "Maasai culture"]
+    },
+    {
+      "slug": "amboseli",
+      "name": "Amboseli National Park",
+      "country": "Kenya",
+      "excerpt": "Famous for large elephant herds on open plains with iconic views of Mount Kilimanjaro across the border.",
+      "highlights": ["Elephant herds", "Kilimanjaro views", "Lions, buffaloes, giraffes", "Photography"]
+    },
+    {
+      "slug": "lake-nakuru",
+      "name": "Lake Nakuru National Park",
+      "country": "Kenya",
+      "excerpt": "Rift Valley lake park known for rhinos, birdlife and beautiful lakeshore scenery.",
+      "highlights": ["Rhinos", "Birdlife", "Rift Valley scenery"]
+    },
+    {
+      "slug": "lake-naivasha",
+      "name": "Lake Naivasha",
+      "country": "Kenya",
+      "excerpt": "Freshwater Rift Valley lake offering boat rides, Crescent Island walks and calm contrast to the big savannah parks.",
+      "highlights": ["Boat rides", "Crescent Island", "Hippos and fish eagles"]
+    },
+    {
+      "slug": "samburu",
+      "name": "Samburu National Reserve",
+      "country": "Kenya",
+      "excerpt": "Rugged northern reserve with species rarely seen further south, including Grevy's zebra, reticulated giraffe and gerenuk.",
+      "highlights": ["Special Five", "Ewaso Nyiro river", "Samburu culture"]
+    },
+    {
+      "slug": "aberdares",
+      "name": "Aberdare National Park",
+      "country": "Kenya",
+      "excerpt": "Isolated volcanic range of misty forests, waterfalls and moorland — a cool highland contrast to the savannah.",
+      "highlights": ["Mountain forest", "Waterfalls", "Rare bongo antelope"]
+    },
+    {
+      "slug": "tsavo-east",
+      "name": "Tsavo East National Park",
+      "country": "Kenya",
+      "excerpt": "Vast open wilderness known for large elephant herds dusted red by the park's distinctive soil.",
+      "highlights": ["Red elephants", "Yatta Plateau", "Aruba Dam"]
+    },
+    {
+      "slug": "tsavo-west",
+      "name": "Tsavo West National Park",
+      "country": "Kenya",
+      "excerpt": "Volcanic landscapes, lava flows and the Mzima Springs underwater hippo viewing hide.",
+      "highlights": ["Mzima Springs", "Lava flows", "Rhino sanctuary"]
+    },
+    {
+      "slug": "lake-bogoria",
+      "name": "Lake Bogoria National Reserve",
+      "country": "Kenya",
+      "excerpt": "Alkaline lake famous for flamingo gatherings, hot springs and geysers along its shores.",
+      "highlights": ["Flamingos", "Hot springs", "Birding"]
+    },
+    {
+      "slug": "ol-pejeta",
+      "name": "Ol Pejeta Conservancy (Sweetwaters)",
+      "country": "Kenya",
+      "excerpt": "Private conservancy known for rhino conservation, including northern white rhinos, plus Big Five game drives.",
+      "highlights": ["Rhino conservation", "Chimpanzee sanctuary", "Night game drives"]
+    },
+    {
+      "slug": "serengeti",
+      "name": "Serengeti National Park",
+      "country": "Tanzania",
+      "excerpt": "Endless plains at the heart of the wildebeest migration, with big cats especially easy to see.",
+      "highlights": ["Wildebeest migration", "Big cats", "Endless plains"]
+    },
+    {
+      "slug": "ngorongoro",
+      "name": "Ngorongoro Crater",
+      "country": "Tanzania",
+      "excerpt": "The world's largest intact volcanic caldera — a natural enclosure with dense wildlife including all of the Big Five.",
+      "highlights": ["Big Five", "Crater game drives", "Maasai heritage"]
+    },
+    {
+      "slug": "tarangire",
+      "name": "Tarangire National Park",
+      "country": "Tanzania",
+      "excerpt": "River park dotted with ancient baobabs, known for large elephant herds in the dry season.",
+      "highlights": ["Elephants", "Baobabs", "Tarangire River"]
+    },
+    {
+      "slug": "lake-manyara",
+      "name": "Lake Manyara National Park",
+      "country": "Tanzania",
+      "excerpt": "Compact park of groundwater forest, lake and escarpment — famous for tree-climbing lions, elephants and birdlife.",
+      "highlights": ["Tree-climbing lions", "Elephants", "Treetop walkway"]
+    },
+    {
+      "slug": "nairobi",
+      "name": "Nairobi",
+      "country": "Kenya",
+      "excerpt": "The safari capital — national park, elephant orphanage, giraffe centre, museums and culture, all within one city.",
+      "highlights": ["Nairobi National Park", "Sheldrick Elephant Orphanage", "Giraffe Centre", "Karen Blixen Museum"]
+    },
+    {
+      "slug": "kilimanjaro",
+      "name": "Mount Kilimanjaro",
+      "country": "Tanzania",
+      "excerpt": "Africa's highest peak — a trekking destination with routes to Uhuru Peak through five climate zones.",
+      "highlights": ["Uhuru Peak (5,895m)", "Rongai and Marangu routes", "Summit sunrises"]
+    }
+  ]
+}

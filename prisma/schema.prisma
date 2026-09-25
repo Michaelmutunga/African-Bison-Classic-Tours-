@@ -35,6 +35,7 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   sessions     Session[]
+  bookings     Booking[]
 
   @@index([role])
 }
@@ -99,6 +100,7 @@ model TourProduct {
   days          ItineraryDay[]
   addOns        TourAddOn[]    @relation("TourAddOns")
   quotes        Quote[]
+  bookings      Booking[]
 
   @@index([categoryId, published])
   @@index([published, updatedAt])
@@ -283,6 +285,7 @@ model Quote {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   items           QuoteItem[]
+  booking         Booking?
 
   @@index([status])
   @@index([tourId])
@@ -300,6 +303,118 @@ model QuoteItem {
   metadata    Json?
 
   @@index([quoteId])
+}
+
+// ---------------------------------------------------------------------------
+// Reservations (Phase 6). Capacity masters (vehicles, properties) land in
+// Phase 10; holds already carry capacity-agnostic overlap protection.
+// ---------------------------------------------------------------------------
+
+enum BookingStatus {
+  INQUIRY
+  QUOTE_DRAFT
+  QUOTE_SENT
+  HOLD
+  AWAITING_DEPOSIT
+  CONFIRMED
+  PRE_TRIP
+  ON_SAFARI
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  REFUND_PENDING
+  REFUNDED
+}
+
+enum HoldStatus {
+  ACTIVE
+  CONSUMED
+  RELEASED
+  EXPIRED
+}
+
+model Booking {
+  id             String        @id @default(cuid())
+  reference      String        @unique
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id])
+  customerName   String
+  customerEmail  String
+  customerPhone  String?
+  tourId         String?
+  tour           TourProduct?  @relation(fields: [tourId], references: [id])
+  quoteId        String?       @unique
+  quote          Quote?        @relation(fields: [quoteId], references: [id])
+  status         BookingStatus @default(INQUIRY)
+  currency       String        @default("USD")
+  subtotalCents  Int           @default(0)
+  discountCents  Int           @default(0)
+  totalCents     Int           @default(0)
+  depositCents   Int           @default(0)
+  paidCents      Int           @default(0)
+  travelStart    DateTime?
+  travelEnd      DateTime?
+  adults         Int           @default(1)
+  children       Int           @default(0)
+  infants        Int           @default(0)
+  // Commercial snapshot copied from the quote (or staff-entered terms).
+  snapshot       Json?
+  idempotencyKey String?       @unique
+  createdById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  travellers     BookingTraveller[]
+  holds          Hold[]
+  history        BookingStatusHistory[]
+
+  @@index([status])
+  @@index([customerEmail])
+  @@index([tourId])
+}
+
+model BookingTraveller {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  fullName  String
+  kind      String   @default("adult")
+  email     String?
+  createdAt DateTime @default(now())
+
+  @@index([bookingId])
+}
+
+model BookingStatusHistory {
+  id        String        @id @default(cuid())
+  bookingId String
+  booking   Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  from      BookingStatus?
+  to        BookingStatus
+  actorId   String?
+  reason    String?
+  createdAt DateTime      @default(now())
+
+  @@index([bookingId, createdAt])
+}
+
+model Hold {
+  id           String     @id @default(cuid())
+  bookingId    String
+  booking      Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  resourceType String
+  resourceId   String
+  quantity     Int        @default(1)
+  startsAt     DateTime
+  endsAt       DateTime
+  expiresAt    DateTime
+  status       HoldStatus @default(ACTIVE)
+  createdById  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([resourceType, resourceId, status])
+  @@index([bookingId])
+  @@index([expiresAt, status])
 }
 
 // ---------------------------------------------------------------------------

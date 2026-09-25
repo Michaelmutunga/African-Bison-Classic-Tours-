@@ -9,18 +9,19 @@ export const PERMISSIONS = [
   "catalogue.write",
   "catalogue.publish",
   "inquiries.read",
+  "bookings.write",
   "users.manage",
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  SUPER_ADMIN: ["catalogue.read", "catalogue.write", "catalogue.publish", "inquiries.read", "users.manage"],
-  ADMIN: ["catalogue.read", "catalogue.write", "catalogue.publish", "inquiries.read", "users.manage"],
+  SUPER_ADMIN: ["catalogue.read", "catalogue.write", "catalogue.publish", "inquiries.read", "bookings.write", "users.manage"],
+  ADMIN: ["catalogue.read", "catalogue.write", "catalogue.publish", "inquiries.read", "bookings.write", "users.manage"],
   CONTENT_MANAGER: ["catalogue.read", "catalogue.write", "catalogue.publish"],
-  SAFARI_CONSULTANT: ["catalogue.read", "inquiries.read"],
-  RESERVATION_STAFF: ["catalogue.read", "inquiries.read"],
-  OPERATIONS_MANAGER: ["catalogue.read", "inquiries.read"],
+  SAFARI_CONSULTANT: ["catalogue.read", "inquiries.read", "bookings.write"],
+  RESERVATION_STAFF: ["catalogue.read", "inquiries.read", "bookings.write"],
+  OPERATIONS_MANAGER: ["catalogue.read", "inquiries.read", "bookings.write"],
   FINANCE_USER: ["catalogue.read"],
   CUSTOMER: ["catalogue.read"],
 };

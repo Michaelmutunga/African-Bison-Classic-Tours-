@@ -7,6 +7,7 @@ import { JsonLd, breadcrumbJsonLd } from "@/components/json-ld";
 import { SafariImage } from "@/components/safari-image";
 import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/layout";
+import { NotFoundError } from "@/server/catalogue";
 import {
   publicDestination,
   publicDestinationHighlights,
@@ -35,8 +36,9 @@ export async function generateMetadata({
   try {
     const destination = await publicDestination(slug);
     return { title: destination.name, description: destination.excerpt };
-  } catch {
-    return { title: "Destination not found" };
+  } catch (error) {
+    if (error instanceof NotFoundError) return { title: "Destination not found" };
+    throw error;
   }
 }
 
@@ -53,8 +55,9 @@ export default async function DestinationDetailPage({
       publicDestination(slug),
       publicDestinationHighlights(slug),
     ]);
-  } catch {
-    notFound();
+  } catch (error) {
+    if (error instanceof NotFoundError) notFound();
+    throw error;
   }
   const relatedTours = await publicToursForDestination(destination.name);
   const crumbs = [

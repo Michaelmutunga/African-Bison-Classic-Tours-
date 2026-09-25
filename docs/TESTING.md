@@ -24,6 +24,19 @@ Phase 3 specs exercise real HTTP: 401 anonymous, 403 wrong role, full
 tour draft → publish → public → delete lifecycle, UI sign-in, and the
 public catalogue.
 
+## Production link audit
+
+The homepage link audit hammers ~60 routes; against the dev server each
+first visit compiles, which can overwhelm a loaded machine. To audit the
+shipped artifact instead:
+
+```powershell
+$env:PORT = "3202"; node .next/standalone/server.js  # terminal 1 (after npm run build)
+$env:PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3202"
+$env:PLAYWRIGHT_NO_SERVER = "1"
+npx playwright test e2e/phase2.spec.ts -g "internal links"  # terminal 2
+```
+
 ## Interactive caveats (slow dev server)
 
 First-visit route compiles are slow on this machine, and client components

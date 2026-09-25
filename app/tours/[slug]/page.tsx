@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Container } from "@/components/ui/layout";
 import { EmptyState } from "@/components/ui/states";
 import { Timeline } from "@/components/ui/timeline";
+import { NotFoundError } from "@/server/catalogue";
 import { publicTour, publicTours } from "@/lib/catalog";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
@@ -39,8 +40,9 @@ export async function generateMetadata({
       description: tour.excerpt,
       openGraph: { title: tour.title, description: tour.excerpt, type: "article" },
     };
-  } catch {
-    return { title: "Safari not found" };
+  } catch (error) {
+    if (error instanceof NotFoundError) return { title: "Safari not found" };
+    throw error;
   }
 }
 
@@ -53,8 +55,9 @@ export default async function TourDetailPage({
   let tour;
   try {
     tour = await publicTour(slug);
-  } catch {
-    notFound();
+  } catch (error) {
+    if (error instanceof NotFoundError) notFound();
+    throw error;
   }
 
   const crumbs = [

@@ -83,8 +83,9 @@ test("homepage internal links all resolve", async ({ page, request }) => {
     (h) => h.startsWith("/") && !h.startsWith("//") && !h.includes("#"),
   );
   expect(internal.length).toBeGreaterThan(10);
-  // Batched: the dev server compiles each route on first visit.
-  const batchSize = 6;
+  // Small batches: the dev server compiles each route on first visit and
+  // this machine stalls under heavy parallel load.
+  const batchSize = 3;
   for (let i = 0; i < internal.length; i += batchSize) {
     const batch = internal.slice(i, i + batchSize);
     const results = await Promise.all(

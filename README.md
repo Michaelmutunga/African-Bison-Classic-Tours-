@@ -38,7 +38,17 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 5 safari pricing and quotation engine**.
+See `Agents.md`. Current status: **Phase 6 reservation and availability engine**.
+
+## Reservations
+
+Explicit booking state machine (`INQUIRY … COMPLETED`, plus
+`CANCELLED`/`EXPIRED`/`REFUND_PENDING`/`REFUNDED`) with every transition
+validated and recorded. Temporary holds pin inventory with
+per-resource advisory-lock serialization, expiry sweeps, renewals and
+release on cancel. Guest checkout with `ABCT-2026-XXXXXX` references and
+idempotency keys; accepted quotes convert with their snapshot. See
+`docs/BOOKING-FLOW.md`.
 
 ## Pricing
 

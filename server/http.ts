@@ -1,7 +1,9 @@
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { currentUser, type SafeUser } from "@/lib/auth";
 import { ConflictError, NotFoundError } from "@/server/catalogue";
+import { PricingError } from "@/server/pricing";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import type { Actor } from "@/server/catalogue";
 
@@ -24,6 +26,12 @@ export function errorResponse(error: unknown): NextResponse {
   }
   if (error instanceof NotFoundError) {
     return NextResponse.json({ code: "not_found", message: error.message }, { status: 404 });
+  }
+  if (error instanceof PricingError) {
+    return NextResponse.json({ code: "pricing_error", message: error.message }, { status: 422 });
+  }
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
+    return NextResponse.json({ code: "not_found", message: "Record not found." }, { status: 404 });
   }
   if (error instanceof ConflictError) {
     return NextResponse.json({ code: "conflict", message: error.message }, { status: 409 });

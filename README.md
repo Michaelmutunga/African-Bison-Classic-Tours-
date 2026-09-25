@@ -38,7 +38,15 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 4 interactive safari builder** (`/builder`).
+See `Agents.md`. Current status: **Phase 5 safari pricing and quotation engine**.
+
+## Pricing
+
+Integer minor units everywhere, basis-point percentages, children at 50%,
+30% deposits. Seasonal multipliers, per-person/per-group components,
+promo codes, multi-currency with rate snapshots. Every quote persists an
+immutable commercial snapshot and a 14-day default validity. Seeded rates
+are flagged illustrative placeholders — see `docs/PRICING.md`.
 
 ## Safari builder
 

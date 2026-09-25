@@ -66,6 +66,7 @@ model Destination {
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   tours      TourProduct[] @relation("TourDestinations")
+  fees       PriceComponent[]
 
   @@index([published])
 }
@@ -97,6 +98,7 @@ model TourProduct {
   updatedAt     DateTime       @updatedAt
   days          ItineraryDay[]
   addOns        TourAddOn[]    @relation("TourAddOns")
+  quotes        Quote[]
 
   @@index([categoryId, published])
   @@index([published, updatedAt])
@@ -172,27 +174,132 @@ model TourAddOn {
 }
 
 model Season {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String
-  startsOn  String?
-  endsOn    String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  startsOn       String?
+  endsOn         String?
+  notes          String?
+  // Seasonal price adjustment in basis points (10000 = no change).
+  multiplierBps  Int      @default(10000)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model PriceComponent {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
+  id            String       @id @default(cuid())
+  slug          String       @unique
+  name          String
+  kind          String
+  amountCents   Int
+  currency      String       @default("USD")
+  perPerson     Boolean      @default(true)
+  placeholder   Boolean      @default(false)
+  destinationId String?
+  destination   Destination? @relation(fields: [destinationId], references: [id])
+  notes         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([kind])
+}
+
+// Per-person-per-day base rates by comfort tier (and optional transport).
+// Seeded amounts are ILLUSTRATIVE placeholders until the business sets real
+// rates; quotes computed from placeholder rates are flagged as indicative.
+model RateCard {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  comfortTier    String
+  transportStyle String?
+  amountCents    Int
+  currency       String   @default("USD")
+  placeholder    Boolean  @default(true)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([comfortTier, transportStyle])
+  @@index([comfortTier])
+}
+
+// Currency rates against the base currency (units of currency per 1 base).
+// Example: base USD, KES rate 129.00 => 1 USD = 129 KES.
+model CurrencyRate {
+  id         String   @id @default(cuid())
+  currency   String   @unique
+  rateToBase Decimal  @db.Decimal(18, 6)
+  asOf       DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model PromoCode {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  kind          String
+  amountCents   Int?
+  percentBps    Int?
+  currency      String    @default("USD")
+  validFrom     DateTime?
+  validUntil    DateTime?
+  maxUses       Int?
+  usedCount     Int       @default(0)
+  active        Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([active])
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  EXPIRED
+  CONVERTED
+}
+
+model Quote {
+  id              String      @id @default(cuid())
+  number          String      @unique
+  tourId          String?
+  tour            TourProduct? @relation(fields: [tourId], references: [id])
+  customerName    String?
+  customerEmail   String?
+  currency        String      @default("USD")
+  status          QuoteStatus @default(DRAFT)
+  validUntil      DateTime
+  subtotalCents   Int
+  discountCents   Int         @default(0)
+  totalCents      Int
+  depositCents    Int
+  hasPlaceholderRates Boolean  @default(false)
+  // Immutable commercial snapshot (inputs, rates, lines, totals, engine).
+  snapshot        Json
+  notes           String?
+  createdById     String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           QuoteItem[]
+
+  @@index([status])
+  @@index([tourId])
+}
+
+model QuoteItem {
+  id          String  @id @default(cuid())
+  quoteId     String
+  quote       Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   kind        String
-  amountCents Int
-  currency    String   @default("USD")
-  perPerson   Boolean  @default(true)
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  label       String
+  quantity    Int
+  unitCents   Int
+  totalCents  Int
+  metadata    Json?
+
+  @@index([quoteId])
 }
 
 // ---------------------------------------------------------------------------

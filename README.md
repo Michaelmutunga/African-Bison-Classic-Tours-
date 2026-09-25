@@ -32,12 +32,22 @@ Health: `GET /api/health`
 | `npm run test` | Unit tests |
 | `npm run test:e2e` | Browser e2e tests |
 | `npm run db:migrate` | Run Prisma migrations (dev) |
-| `npm run db:seed` | Seed business settings |
+| `npm run db:seed` | Seed business settings + catalogue |
+| `npm run db:check` | Verify database connectivity |
 | `npm run create-admin` | Admin bootstrap placeholder |
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 3 structured safari catalogue**.
+See `Agents.md`. Current status: **Phase 4 interactive safari builder** (`/builder`).
+
+## Safari builder
+
+Ten guided steps (regions → experiences → dates → travellers → style →
+interests → destinations → stay → transport → activities) produce a
+day-by-day plan with a route schematic and journey profile. Drafts persist
+in the browser; “Request precise quote” sends the plan to a planner as a
+tracked inquiry with structured metadata. No prices are shown — monetary
+quotation is Phase 5.
 
 ## Design system
 

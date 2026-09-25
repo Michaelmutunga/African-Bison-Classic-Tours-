@@ -54,7 +54,7 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
-          <ButtonLink href="/contact" size="sm">
+          <ButtonLink href="/builder" size="sm">
             Design your safari
           </ButtonLink>
         </nav>
@@ -85,7 +85,7 @@ export function SiteHeader() {
                 {item.label}
               </Link>
             ))}
-            <ButtonLink href="/contact" className="my-3">
+            <ButtonLink href="/builder" className="my-3">
               Design your safari
             </ButtonLink>
           </Container>

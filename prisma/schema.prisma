@@ -219,6 +219,7 @@ model ContactInquiry {
   tourSlug         String?
   message          String
   preferredContact String?
+  metadata         Json?
   status           String   @default("new")
   createdAt        DateTime @default(now())
 

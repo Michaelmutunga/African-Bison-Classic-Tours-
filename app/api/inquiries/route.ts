@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { inquiryReference, inquirySchema } from "@/lib/inquiries";
 import { prisma } from "@/lib/prisma";
@@ -45,6 +46,11 @@ export async function POST(request: Request) {
       tourSlug: data.tourSlug || null,
       message: data.message,
       preferredContact: data.preferredContact ?? null,
+      // JSON round-trip guarantees plain serializable data for Prisma.
+      metadata:
+        data.metadata === undefined
+          ? undefined
+          : (JSON.parse(JSON.stringify(data.metadata)) as Prisma.InputJsonValue),
     },
     select: { reference: true },
   });

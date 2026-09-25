@@ -11,6 +11,8 @@ export const inquirySchema = z.object({
   tourSlug: z.string().trim().max(160).optional().or(z.literal("")),
   message: z.string().trim().min(10, "Tell us a little more (10+ characters)").max(5000),
   preferredContact: z.enum(["email", "phone", "whatsapp"]).optional(),
+  // Structured origin payload (e.g. a safari-builder draft). Stored as-is.
+  metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: genuine users leave this empty.
   company: z.string().max(0).optional().or(z.literal("")),
 });

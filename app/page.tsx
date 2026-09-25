@@ -37,7 +37,7 @@ export default async function HomePage() {
             people who know the ground.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href="/contact" variant="accent" size="lg">
+            <ButtonLink href="/builder" variant="accent" size="lg">
               Design your safari
             </ButtonLink>
             <ButtonLink
@@ -185,7 +185,7 @@ export default async function HomePage() {
             Tell us the trip you are dreaming of. We will design it.
           </h2>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <ButtonLink href="/contact" variant="accent" size="lg">
+            <ButtonLink href="/builder" variant="accent" size="lg">
               Start planning
             </ButtonLink>
             <ButtonLink

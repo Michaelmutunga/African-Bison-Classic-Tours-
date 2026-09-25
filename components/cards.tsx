@@ -2,15 +2,16 @@ import Link from "next/link";
 import { SafariImage } from "@/components/safari-image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
-import { categoryLabel, formatDate, type Destination, type Post, type Tour } from "@/lib/content";
+import { formatDate, type Post } from "@/lib/content";
+import type { PublicDestinationSummary, PublicTourSummary } from "@/lib/catalog";
 
-export function TourCard({ tour }: { tour: Tour }) {
+export function TourCard({ tour }: { tour: PublicTourSummary }) {
   return (
     <Card className="flex h-full flex-col overflow-hidden">
       <SafariImage seed={tour.slug} label={tour.title} alt={`${tour.title} — photo pending`} />
       <CardBody className="flex flex-1 flex-col">
         <div className="flex flex-wrap gap-2">
-          <Badge tone="sand">{categoryLabel(tour.category)}</Badge>
+          <Badge tone="sand">{tour.categoryLabel}</Badge>
           <Badge>
             {tour.durationDays} day{tour.durationDays === 1 ? "" : "s"}
           </Badge>
@@ -31,7 +32,7 @@ export function TourCard({ tour }: { tour: Tour }) {
   );
 }
 
-export function DestinationCard({ destination }: { destination: Destination }) {
+export function DestinationCard({ destination }: { destination: PublicDestinationSummary }) {
   return (
     <Card className="flex h-full flex-col overflow-hidden">
       <SafariImage

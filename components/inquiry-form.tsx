@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FieldError, FieldHint, Input, Label, Textarea } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { ErrorState, Spinner } from "@/components/ui/states";
-import { getTour } from "@/lib/content";
 
 type Status =
   | { kind: "idle" }
@@ -13,16 +12,16 @@ type Status =
   | { kind: "sent"; reference: string }
   | { kind: "error"; message: string };
 
-export function InquiryForm({ tourSlug }: { tourSlug?: string }) {
-  const tour = tourSlug ? getTour(tourSlug) : undefined;
+export function InquiryForm({ tourSlug, tourTitle }: { tourSlug?: string; tourTitle?: string }) {
+  const tour = tourSlug ? { slug: tourSlug, title: tourTitle ?? tourSlug } : undefined;
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
-  // Signals React hydration: the submit handler only exists client-side, so
-  // automated checks (and assistive tech) can wait for the live form.
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    setReady(true);
-  }, []);
+  // Signals React hydration via ref (no setState-in-effect): the submit
+  // handler only exists client-side, so automated checks can wait for the
+  // live form before clicking.
+  function markReady(node: HTMLFormElement | null) {
+    node?.setAttribute("data-ready", "true");
+  }
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,12 +73,7 @@ export function InquiryForm({ tourSlug }: { tourSlug?: string }) {
   const errorFor = (name: string) => fieldErrors[name]?.[0];
 
   return (
-    <form
-      onSubmit={onSubmit}
-      noValidate
-      aria-label="Safari enquiry form"
-      data-ready={ready ? "true" : undefined}
-    >
+    <form ref={markReady} onSubmit={onSubmit} noValidate aria-label="Safari enquiry form">
       {status.kind === "error" ? (
         <div className="mb-4">
           <ErrorState title="Could not send" description={status.message} />

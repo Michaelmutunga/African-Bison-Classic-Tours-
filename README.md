@@ -37,7 +37,7 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 2 public website and content**.
+See `Agents.md`. Current status: **Phase 3 structured safari catalogue**.
 
 ## Design system
 

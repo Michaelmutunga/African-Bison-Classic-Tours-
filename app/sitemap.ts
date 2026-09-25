@@ -1,10 +1,13 @@
 import type { MetadataRoute } from "next";
-import { destinations, posts, tours } from "@/lib/content";
+import { publicDestinations, publicTours } from "@/lib/catalog";
+import { posts } from "@/lib/content";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export const dynamic = "force-dynamic";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages = [
     "",
     "/tours",
@@ -16,6 +19,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/faq",
     "/travel-information",
   ];
+  let tours: Awaited<ReturnType<typeof publicTours>> = [];
+  let destinations: Awaited<ReturnType<typeof publicDestinations>> = [];
+  try {
+    [tours, destinations] = await Promise.all([publicTours(), publicDestinations()]);
+  } catch {
+    // Build-time database absence: sitemap degrades to static pages only.
+  }
   return [
     ...staticPages.map((path) => ({
       url: `${SITE_URL}${path || "/"}`,
@@ -25,7 +35,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     ...tours.map((tour) => ({
       url: `${SITE_URL}/tours/${tour.slug}`,
-      lastModified: tour.sourceUpdated ? new Date(tour.sourceUpdated) : new Date(),
+      lastModified: new Date(),
       changeFrequency: "monthly" as const,
       priority: 0.8,
     })),

@@ -8,13 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Container } from "@/components/ui/layout";
+import { EmptyState } from "@/components/ui/states";
 import { Timeline } from "@/components/ui/timeline";
-import { categoryLabel, getTour, tours } from "@/lib/content";
+import { publicTour, publicTours } from "@/lib/catalog";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
-  return tours.map((tour) => ({ slug: tour.slug }));
+  // Best-effort SSG: Docker/CI builds have no database, so fall back to
+  // on-demand rendering instead of failing the build.
+  try {
+    return (await publicTours()).map((tour) => ({ slug: tour.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({
@@ -23,13 +32,16 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const tour = getTour(slug);
-  if (!tour) return { title: "Safari not found" };
-  return {
-    title: tour.title,
-    description: tour.excerpt,
-    openGraph: { title: tour.title, description: tour.excerpt, type: "article" },
-  };
+  try {
+    const tour = await publicTour(slug);
+    return {
+      title: tour.title,
+      description: tour.excerpt,
+      openGraph: { title: tour.title, description: tour.excerpt, type: "article" },
+    };
+  } catch {
+    return { title: "Safari not found" };
+  }
 }
 
 export default async function TourDetailPage({
@@ -38,8 +50,12 @@ export default async function TourDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const tour = getTour(slug);
-  if (!tour) notFound();
+  let tour;
+  try {
+    tour = await publicTour(slug);
+  } catch {
+    notFound();
+  }
 
   const crumbs = [
     { label: "Home", href: "/" },
@@ -63,7 +79,7 @@ export default async function TourDetailPage({
       />
       <Breadcrumbs items={crumbs} />
       <Container className="pt-6">
-        <p className="type-label text-clay-deep">{categoryLabel(tour.category)}</p>
+        <p className="type-label text-clay-deep">{tour.category.name}</p>
         <h1 className="type-h1 mt-2 max-w-3xl text-balance">{tour.title}</h1>
         <div className="mt-3 flex flex-wrap gap-2">
           <Badge tone="sand">
@@ -86,14 +102,14 @@ export default async function TourDetailPage({
                 {para}
               </p>
             ))}
-            {tour.itinerary.length > 0 ? (
+            {tour.days.length > 0 ? (
               <>
                 <h2 className="type-h2 mt-10">Day by day</h2>
                 <div className="mt-6">
                   <Timeline
-                    entries={tour.itinerary.map((day) => ({
-                      id: `day-${day.n}`,
-                      marker: `Day ${day.n}`,
+                    entries={tour.days.map((day) => ({
+                      id: `day-${day.dayNumber}`,
+                      marker: `Day ${day.dayNumber}`,
                       title: day.title,
                       detail: day.body.split("\n\n").map((para, i) => (
                         <p key={i} className="mt-2 first:mt-1">
@@ -104,7 +120,14 @@ export default async function TourDetailPage({
                   />
                 </div>
               </>
-            ) : null}
+            ) : (
+              <div className="mt-6">
+                <EmptyState
+                  title="Full day-by-day plan on request"
+                  description="This experience is arranged around Nairobi's highlights — tell us your dates and we will plan each stop."
+                />
+              </div>
+            )}
             {tour.includes.length > 0 || tour.excludes.length > 0 ? (
               <div className="mt-10 grid gap-4 sm:grid-cols-2">
                 {tour.includes.length > 0 ? (
@@ -147,7 +170,7 @@ export default async function TourDetailPage({
                 <p className="type-h3 mt-1">{tour.title}</p>
                 <p className="type-small mt-2 text-ink/70">
                   {tour.durationDays} day{tour.durationDays === 1 ? "" : "s"} ·{" "}
-                  {categoryLabel(tour.category)}
+                  {tour.category.name}
                 </p>
                 <p className="type-small mt-3 text-ink/70">
                   Priced per trip for your dates, group size and accommodation

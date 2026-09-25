@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { InquiryForm } from "@/components/inquiry-form";
+import { publicTour } from "@/lib/catalog";
 import { MarketingShell } from "@/components/marketing-shell";
 import { Card, CardBody } from "@/components/ui/card";
 
@@ -9,12 +10,22 @@ export const metadata: Metadata = {
     "Enquire about Kenya and Tanzania safaris — African Bison Classic Tours, Nairobi. A planner replies, usually within one business day.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ContactPage({
   searchParams,
 }: {
   searchParams: Promise<{ tour?: string }>;
 }) {
   const { tour } = await searchParams;
+  let tourTitle: string | undefined;
+  if (tour) {
+    try {
+      tourTitle = (await publicTour(tour)).title;
+    } catch {
+      tourTitle = undefined;
+    }
+  }
 
   return (
     <MarketingShell
@@ -25,7 +36,7 @@ export default async function ContactPage({
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <Card>
           <CardBody>
-            <InquiryForm tourSlug={tour} />
+            <InquiryForm tourSlug={tour} tourTitle={tourTitle} />
           </CardBody>
         </Card>
         <Card>

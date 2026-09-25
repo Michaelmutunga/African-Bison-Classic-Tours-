@@ -4,16 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Container, SectionHeading } from "@/components/ui/layout";
 import {
-  CATEGORIES,
-  categoryLabel,
-  destinations,
-  experiences,
-  posts,
-  tours,
-  toursByCategory,
-} from "@/lib/content";
+  publicCategories,
+  publicDestinations,
+  publicTourCount,
+  publicTours,
+} from "@/lib/catalog";
+import { experiences, posts } from "@/lib/content";
 
-export default function HomePage() {
+// Public catalogue reads need the database at request time.
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const [categories, destinations, tourCount] = await Promise.all([
+    publicCategories(),
+    publicDestinations(),
+    publicTourCount(),
+  ]);
   const latestPosts = posts.slice(0, 3);
   const featuredDestinations = destinations.slice(0, 8);
 
@@ -52,41 +58,43 @@ export default function HomePage() {
           lede="Every journey below is a real itinerary we operate — open one to see each day, what is included, and what is not."
         />
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {CATEGORIES.map((category) => {
-            const list = toursByCategory(category.slug).slice(0, 3);
-            return (
-              <section key={category.slug} aria-label={category.label}>
-                <div className="flex items-baseline justify-between gap-4 border-b border-ink/15 pb-2">
-                  <h2 className="type-h3">{category.label}</h2>
-                  <Link
-                    href={`/tours?category=${category.slug}`}
-                    className="type-small whitespace-nowrap underline underline-offset-4 hover:text-clay-deep"
-                  >
-                    All {toursByCategory(category.slug).length} →
-                  </Link>
-                </div>
-                <ul className="divide-y divide-ink/10">
-                  {list.map((tour) => (
-                    <li key={tour.slug} className="py-3">
-                      <Link
-                        href={`/tours/${tour.slug}`}
-                        className="type-small font-medium hover:text-clay-deep"
-                      >
-                        {tour.title}
-                      </Link>
-                      <p className="type-caption text-ink/60">
-                        {tour.durationDays} day{tour.durationDays === 1 ? "" : "s"} ·{" "}
-                        {categoryLabel(tour.category)}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            );
-          })}
+          {await Promise.all(
+            categories.map(async (category) => {
+              const list = (await publicTours(category.slug)).slice(0, 3);
+              return (
+                <section key={category.slug} aria-label={category.label}>
+                  <div className="flex items-baseline justify-between gap-4 border-b border-ink/15 pb-2">
+                    <h2 className="type-h3">{category.label}</h2>
+                    <Link
+                      href={`/tours?category=${category.slug}`}
+                      className="type-small whitespace-nowrap underline underline-offset-4 hover:text-clay-deep"
+                    >
+                      All {category.count} →
+                    </Link>
+                  </div>
+                  <ul className="divide-y divide-ink/10">
+                    {list.map((tour) => (
+                      <li key={tour.slug} className="py-3">
+                        <Link
+                          href={`/tours/${tour.slug}`}
+                          className="type-small font-medium hover:text-clay-deep"
+                        >
+                          {tour.title}
+                        </Link>
+                        <p className="type-caption text-ink/60">
+                          {tour.durationDays} day{tour.durationDays === 1 ? "" : "s"} ·{" "}
+                          {tour.categoryLabel}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            }),
+          )}
         </div>
         <p className="type-small mt-6 text-ink/70">
-          {tours.length} published itineraries. Pricing is quoted per trip —{" "}
+          {tourCount} published itineraries. Pricing is quoted per trip —{" "}
           <Link href="/contact" className="underline underline-offset-4">
             ask for a quote
           </Link>

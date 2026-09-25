@@ -7,6 +7,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Generous on constrained machines; jsdom + axe suites are slow here.
+    testTimeout: 30_000,
+    globalSetup: ["./tests/global-setup.ts"],
     environmentMatchGlobs: [
       ["components/**/*.test.{ts,tsx}", "jsdom"],
       ["app/**/*.test.{ts,tsx}", "jsdom"],

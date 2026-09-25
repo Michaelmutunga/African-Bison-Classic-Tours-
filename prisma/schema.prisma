@@ -1,4 +1,6 @@
-// Phase 0: minimal foundation. Domain entities land from Phase 3 onwards.
+// Phase 3: structured safari catalogue + auth foundation.
+// Booking, pricing snapshots and operations entities land in later phases.
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +9,195 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ---------------------------------------------------------------------------
+// Access control foundation (full RBAC matrices land with operations, Phase 10)
+// ---------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  CONTENT_MANAGER
+  SAFARI_CONSULTANT
+  RESERVATION_STAFF
+  OPERATIONS_MANAGER
+  FINANCE_USER
+  CUSTOMER
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  role         Role      @default(CUSTOMER)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+
+  @@index([role])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Catalogue
+// ---------------------------------------------------------------------------
+
+model Destination {
+  id         String        @id @default(cuid())
+  slug       String        @unique
+  name       String
+  country    String
+  excerpt    String
+  highlights String[]      @default([])
+  published  Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  tours      TourProduct[] @relation("TourDestinations")
+
+  @@index([published])
+}
+
+model TourCategory {
+  id        String        @id @default(cuid())
+  slug      String        @unique
+  name      String
+  createdAt DateTime      @default(now())
+  tours     TourProduct[]
+}
+
+model TourProduct {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  title         String
+  categoryId    String
+  category      TourCategory   @relation(fields: [categoryId], references: [id])
+  destinations  Destination[]  @relation("TourDestinations")
+  durationDays  Int
+  excerpt       String
+  overview      String[]       @default([])
+  includes      String[]       @default([])
+  excludes      String[]       @default([])
+  published     Boolean        @default(false)
+  sourceUrl     String?
+  sourceUpdated DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  days          ItineraryDay[]
+  addOns        TourAddOn[]    @relation("TourAddOns")
+
+  @@index([categoryId, published])
+  @@index([published, updatedAt])
+}
+
+model ItineraryDay {
+  id          String      @id @default(cuid())
+  tourId      String
+  tour        TourProduct @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  dayNumber   Int
+  title       String
+  body        String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([tourId, dayNumber])
+  @@index([tourId, dayNumber])
+}
+
+model Activity {
+  id           String      @id @default(cuid())
+  slug         String      @unique
+  name         String
+  destination  String?
+  duration     String?
+  priceCents   Int?
+  currency     String      @default("USD")
+  capacity     Int?
+  published    Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([published])
+}
+
+model Accommodation {
+  id        String                  @id @default(cuid())
+  slug      String                  @unique
+  name      String
+  location  String?
+  category  String?
+  boardBasis String?
+  supplier  String?
+  status    String                  @default("active")
+  createdAt DateTime                @default(now())
+  updatedAt DateTime                @updatedAt
+  roomTypes AccommodationRoomType[]
+}
+
+model AccommodationRoomType {
+  id              String        @id @default(cuid())
+  accommodationId String
+  accommodation   Accommodation @relation(fields: [accommodationId], references: [id], onDelete: Cascade)
+  name            String
+  capacity        Int?
+  priceCents      Int?
+  currency        String        @default("USD")
+
+  @@unique([accommodationId, name])
+}
+
+model TourAddOn {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String?
+  priceCents  Int?
+  currency    String        @default("USD")
+  published   Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tours       TourProduct[] @relation("TourAddOns")
+}
+
+model Season {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  startsOn  String?
+  endsOn    String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PriceComponent {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  kind        String
+  amountCents Int
+  currency    String   @default("USD")
+  perPerson   Boolean  @default(true)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Settings, inquiries, audit
+// ---------------------------------------------------------------------------
 
 model SiteSetting {
   id        String   @id @default(cuid())

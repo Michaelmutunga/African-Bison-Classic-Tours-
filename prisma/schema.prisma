@@ -366,6 +366,7 @@ model Booking {
   travellers     BookingTraveller[]
   holds          Hold[]
   history        BookingStatusHistory[]
+  payments       Payment[]
 
   @@index([status])
   @@index([customerEmail])
@@ -415,6 +416,79 @@ model Hold {
   @@index([resourceType, resourceId, status])
   @@index([bookingId])
   @@index([expiresAt, status])
+}
+
+// ---------------------------------------------------------------------------
+// Payments (Phase 7). Raw card data is NEVER stored; only provider refs.
+// ---------------------------------------------------------------------------
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentKind {
+  DEPOSIT
+  BALANCE
+  FULL
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  bookingId      String
+  booking        Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  provider       String        @default("mock")
+  providerRef    String?       @unique
+  amountCents    Int
+  currency       String        @default("USD")
+  kind           PaymentKind   @default(DEPOSIT)
+  status         PaymentStatus @default(PENDING)
+  idempotencyKey String?       @unique
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  attempts       PaymentAttempt[]
+  refunds        Refund[]
+
+  @@index([bookingId, status])
+}
+
+model PaymentAttempt {
+  id        String   @id @default(cuid())
+  paymentId String
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  status    String
+  providerRef String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([paymentId])
+}
+
+model Refund {
+  id             String       @id @default(cuid())
+  paymentId      String
+  payment        Payment      @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  bookingId      String
+  amountCents    Int
+  currency       String       @default("USD")
+  status         RefundStatus @default(PENDING)
+  providerRef    String?      @unique
+  reason         String?
+  idempotencyKey String?      @unique
+  createdAt      DateTime     @default(now())
+
+  @@index([paymentId])
+  @@index([bookingId])
 }
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,8 @@ import { ZodError } from "zod";
 import { currentUser, type SafeUser } from "@/lib/auth";
 import { ConflictError, NotFoundError } from "@/server/catalogue";
 import { BookingError } from "@/server/bookings";
+import { PaymentError } from "@/server/payments";
+import { ProviderError, ProviderTimeoutError } from "@/server/payments/providers";
 import { PricingError } from "@/server/pricing";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import type { Actor } from "@/server/catalogue";
@@ -28,7 +30,15 @@ export function errorResponse(error: unknown): NextResponse {
   if (error instanceof NotFoundError) {
     return NextResponse.json({ code: "not_found", message: error.message }, { status: 404 });
   }
-  if (error instanceof PricingError || error instanceof BookingError) {
+  if (error instanceof ProviderTimeoutError) {
+    return NextResponse.json({ code: "provider_timeout", message: error.message }, { status: 504 });
+  }
+  if (
+    error instanceof PricingError ||
+    error instanceof BookingError ||
+    error instanceof PaymentError ||
+    error instanceof ProviderError
+  ) {
     return NextResponse.json({ code: "pricing_error", message: error.message }, { status: 422 });
   }
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {

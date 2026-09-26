@@ -107,7 +107,8 @@ export type BookingInput = z.infer<typeof bookingInput>;
 // Two concurrent requests for the same resource+dates cannot interleave.
 // ---------------------------------------------------------------------------
 
-type Tx = Prisma.TransactionClient;
+export type BookingTx = Prisma.TransactionClient;
+type Tx = BookingTx;
 
 function lockKeys(resourceType: string, resourceId: string): [number, number] {
   const hex = createHash("sha256").update(`${resourceType}:${resourceId}`).digest("hex");
@@ -158,7 +159,7 @@ async function recordHistory(
   });
 }
 
-async function applyTransition(
+export async function applyTransition(
   tx: Tx,
   bookingId: string,
   to: BookingStatus,

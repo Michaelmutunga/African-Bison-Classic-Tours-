@@ -38,7 +38,15 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 6 reservation and availability engine**.
+See `Agents.md`. Current status: **Phase 7 payment and transaction infrastructure**.
+
+## Payments
+
+Provider abstraction (`mock` active; M-Pesa/card adapters fail closed
+without credentials). Webhooks are signature-verified and idempotent —
+the browser is never proof of payment. Deposits auto-confirm bookings,
+refunds (full/partial, idempotent) decrement paid totals, receipts issue
+for successes. No card data stored. See `docs/PAYMENTS.md`.
 
 ## Reservations
 

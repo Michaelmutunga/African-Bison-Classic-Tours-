@@ -6,10 +6,15 @@ function monthLabel(date: Date): string {
   return date.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 }
 
-function dayCell(date: Date): RegExp {
-  const day = date.getDate();
-  const month = date.toLocaleDateString("en-GB", { month: "long" });
-  return new RegExp(`${day} ${month} ${date.getFullYear()}`);
+function dayCell(date: Date): string {
+  // Exact accessible label, e.g. "Tuesday, 1 December 2026" — a substring
+  // regex would also match the 11th, 21st and 31st.
+  return date.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 async function pickDate(page: Page, calendarHeading: string, target: Date) {
@@ -19,7 +24,7 @@ async function pickDate(page: Page, calendarHeading: string, target: Date) {
     await section.getByRole("button", { name: "Next month" }).click();
   }
   await section.getByText(monthLabel(target), { exact: true }).waitFor({ timeout: 10_000 });
-  await section.getByRole("gridcell", { name: dayCell(target) }).click();
+  await section.getByRole("gridcell", { name: dayCell(target), exact: true }).click();
 }
 
 async function futureTrip(): Promise<{ start: Date; end: Date }> {

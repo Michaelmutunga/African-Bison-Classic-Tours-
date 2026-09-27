@@ -370,6 +370,11 @@ model Booking {
   messages       CustomerMessage[]
   documents      Document[]
   group          Group?
+  vehicleAssignments VehicleAssignment[]
+  guideAssignments   GuideAssignment[]
+  transfers      Transfer[]
+  notes          InternalNote[]
+  invoices       Invoice[]
 
   @@index([status])
   @@index([customerEmail])
@@ -574,6 +579,146 @@ model Refund {
 
   @@index([paymentId])
   @@index([bookingId])
+}
+
+// ---------------------------------------------------------------------------
+// Operations (Phase 10): fleet, crew, transfers, notes, invoices.
+// ---------------------------------------------------------------------------
+
+model Vehicle {
+  id           String   @id @default(cuid())
+  registration String   @unique
+  type         String
+  capacity     Int
+  status       String   @default("active")
+  operator     String?
+  location     String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  assignments  VehicleAssignment[]
+  transfers    Transfer[]
+
+  @@index([status])
+}
+
+model VehicleAssignment {
+  id        String   @id @default(cuid())
+  vehicleId String
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  startsAt  DateTime
+  endsAt    DateTime
+  createdById String?
+  createdAt DateTime @default(now())
+
+  @@index([vehicleId, startsAt, endsAt])
+  @@index([bookingId])
+}
+
+model Guide {
+  id             String   @id @default(cuid())
+  name           String
+  phone          String?
+  languages      String[] @default([])
+  specialisations String[] @default([])
+  status         String   @default("active")
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  assignments    GuideAssignment[]
+  transfers      Transfer[]
+
+  @@index([status])
+}
+
+model GuideAssignment {
+  id        String   @id @default(cuid())
+  guideId   String
+  guide     Guide    @relation(fields: [guideId], references: [id], onDelete: Cascade)
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  startsAt  DateTime
+  endsAt    DateTime
+  createdById String?
+  createdAt DateTime @default(now())
+
+  @@index([guideId, startsAt, endsAt])
+  @@index([bookingId])
+}
+
+model Transfer {
+  id          String    @id @default(cuid())
+  bookingId   String?
+  booking     Booking?  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  pickup      String
+  dropoff     String
+  scheduledAt DateTime
+  passengers  Int       @default(1)
+  vehicleId   String?
+  vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id])
+  guideId     String?
+  guide       Guide?    @relation(fields: [guideId], references: [id])
+  status      String    @default("scheduled")
+  notes       String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([scheduledAt, status])
+  @@index([bookingId])
+}
+
+// Staff-only internal notes. Never exposed to customers.
+model InternalNote {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([bookingId, createdAt])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  VOID
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  number        String        @unique
+  bookingId     String
+  booking       Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  currency      String        @default("USD")
+  subtotalCents Int
+  discountCents Int           @default(0)
+  totalCents    Int
+  status        InvoiceStatus @default(DRAFT)
+  snapshot      Json?
+  createdById   String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  items         InvoiceItem[]
+
+  @@index([bookingId])
+  @@index([status])
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  label       String
+  quantity    Int
+  unitCents   Int
+  totalCents  Int
+
+  @@index([invoiceId])
 }
 
 // ---------------------------------------------------------------------------

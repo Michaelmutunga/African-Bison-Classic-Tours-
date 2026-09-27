@@ -193,9 +193,79 @@ export function TourForm({
 
       <div className="mt-6">
         <h2 className="type-h3">Itinerary days</h2>
+        <p className="type-caption mt-1 text-ink/60">
+          Drag cards to reorder, or use the move buttons. Order saves with the tour.
+        </p>
         <div className="mt-3 grid gap-4">
           {days.map((day, index) => (
-            <div key={index} className="rounded-[2px] border border-ink/15 p-4">
+            <div
+              key={index}
+              draggable
+              onDragStart={(event) => {
+                event.dataTransfer.setData("text/plain", String(index));
+                event.dataTransfer.effectAllowed = "move";
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                event.preventDefault();
+                const from = Number(event.dataTransfer.getData("text/plain"));
+                if (!Number.isInteger(from) || from === index) return;
+                const next = [...days];
+                const [moved] = next.splice(from, 1);
+                if (!moved) return;
+                next.splice(index, 0, moved);
+                setDays(next.map((d, i) => ({ ...d, dayNumber: i + 1 })));
+              }}
+              className="rounded-[2px] border border-ink/15 bg-ivory p-4"
+            >
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span
+                  className="type-caption cursor-grab text-ink/55"
+                  title="Drag to reorder"
+                  aria-hidden="true"
+                >
+                  ⋮⋮ drag
+                </span>
+                <span className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={index === 0}
+                    aria-label={`Move day ${index + 1} earlier`}
+                    onClick={() => {
+                      const next = [...days];
+                      const current = next[index];
+                      const prev = next[index - 1];
+                      if (!current || !prev) return;
+                      next[index - 1] = current;
+                      next[index] = prev;
+                      setDays(next.map((d, i) => ({ ...d, dayNumber: i + 1 })));
+                    }}
+                  >
+                    ↑
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={index === days.length - 1}
+                    aria-label={`Move day ${index + 1} later`}
+                    onClick={() => {
+                      const next = [...days];
+                      const current = next[index];
+                      const after = next[index + 1];
+                      if (!current || !after) return;
+                      next[index + 1] = current;
+                      next[index] = after;
+                      setDays(next.map((d, i) => ({ ...d, dayNumber: i + 1 })));
+                    }}
+                  >
+                    ↓
+                  </Button>
+                </span>
+              </div>
               <div className="grid gap-3 sm:grid-cols-[6rem_1fr]">
                 <div>
                   <Label htmlFor={`day-n-${index}`}>Day</Label>

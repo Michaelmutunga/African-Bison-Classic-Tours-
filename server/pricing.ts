@@ -470,6 +470,9 @@ export async function createQuote(actor: Actor | null, input: unknown) {
         if (promoId) {
           await tx.promoCode.update({ where: { id: promoId }, data: { usedCount: { increment: 1 } } });
         }
+        await tx.auditLog.create({
+          data: { actor: actor?.id ?? "system", action: "quote.created", resource: "quote", resourceId: created.id },
+        });
         return created;
       });
       return quote;
@@ -496,7 +499,11 @@ export async function setQuoteStatus(actor: Actor | null, id: string, status: Qu
   if (!TRANSITIONS[quote.status].includes(status)) {
     throw new PricingError(`Cannot move quote from ${quote.status} to ${status}`);
   }
-  return prisma.quote.update({ where: { id }, data: { status } });
+  const updated = await prisma.quote.update({ where: { id }, data: { status } });
+  await prisma.auditLog.create({
+    data: { actor: actor?.id ?? "system", action: `quote.${status.toLowerCase()}`, resource: "quote", resourceId: id },
+  });
+  return updated;
 }
 
 export async function getQuote(actor: Actor | null, id: string) {

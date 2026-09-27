@@ -118,7 +118,7 @@ function lockKeys(resourceType: string, resourceId: string): [number, number] {
   return [toInt32(hex.slice(0, 8)), toInt32(hex.slice(8, 16))];
 }
 
-async function withResourceLock<T>(tx: Tx, resourceType: string, resourceId: string, fn: () => Promise<T>): Promise<T> {
+export async function withResourceLock<T>(tx: Tx, resourceType: string, resourceId: string, fn: () => Promise<T>): Promise<T> {
   const [k1, k2] = lockKeys(resourceType, resourceId);
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(${k1}::int, ${k2}::int)`;
   return fn();

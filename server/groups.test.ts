@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { groupSummary, perPersonShare, travellerCompletion } from "@/lib/group-view";
 import { ConflictError, NotFoundError } from "@/server/catalogue";
-import { createBooking } from "@/server/bookings";
-import { registerCustomer } from "@/server/portal";
+import { createBooking, setBookingStatus } from "@/server/bookings";
+import { addTraveller, registerCustomer, removeTraveller } from "@/server/portal";
 import { testActor, unique } from "@/tests/db";
 import {
   GroupError,
@@ -178,7 +178,6 @@ describe("group modification", () => {
     const { booking, me } = await ownerWithBooking();
     await createGroup(me, booking.reference, { name: "Modify Group" });
     // Organiser adds directly (existing traveller flow).
-    const { addTraveller } = await import("@/server/portal");
     const direct = await addTraveller(me, booking.reference, { fullName: "Walk-in Guest", kind: "adult" });
     expect(direct.inviteId).toBeNull();
     let dashboard = await groupDashboard(me, booking.reference);
@@ -192,7 +191,6 @@ describe("group modification", () => {
     expect(dashboard.invites).toHaveLength(1);
 
     // Leaver removed; invite revoked.
-    const { removeTraveller } = await import("@/server/portal");
     await removeTraveller(me, direct.id);
     dashboard = await groupDashboard(me, booking.reference);
     expect(dashboard.summary.total).toBe(0);
@@ -204,7 +202,6 @@ describe("group modification", () => {
 
   it("locks groups once underway", async () => {
     const { booking, me } = await ownerWithBooking();
-    const { setBookingStatus } = await import("@/server/bookings");
     await setBookingStatus(admin, booking.id, "HOLD");
     await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT");
     await setBookingStatus(admin, booking.id, "CONFIRMED");

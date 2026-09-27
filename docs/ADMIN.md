@@ -12,6 +12,18 @@ Roles: `SUPER_ADMIN`, `ADMIN`, `CONTENT_MANAGER` (write + publish),
 `SAFARI_CONSULTANT`, `RESERVATION_STAFF`, `OPERATIONS_MANAGER`,
 `FINANCE_USER` (read-only catalogue), `CUSTOMER`.
 
+## Operations console (Phase 10)
+
+- `/admin` — dashboard with real counts; pipeline links filter `/admin/bookings`.
+- `/admin/bookings` — pipeline board; `/admin/bookings/[id]` — full workspace.
+- `/admin/calendar?month=N` — bookings, transfers, holds with conflict flags.
+- `/admin/fleet` — vehicles and guides (delete blocked while assigned).
+- `/admin/transfers`, `/admin/travellers`, `/admin/quotes`, `/admin/invoices`,
+  `/admin/payments`, `/admin/inquiries`, `/admin/audit-logs`.
+- Assignments reject overlaps with 409 naming the clashing booking; the
+  calendar independently flags any that slip through.
+- No demo fleet is seeded — create the real vehicles and guides here.
+
 ## Catalogue workflow
 
 - Tours are created as **drafts** (`published: false`).

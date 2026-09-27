@@ -38,7 +38,18 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 9 group travel**.
+See `Agents.md`. Current status: **Phase 10 operations platform**.
+
+## Operations console (`/admin`)
+
+Real database-backed dashboard (arrivals, departures, transfers,
+fleet/crew utilization, pipeline, revenue, outstanding), booking pipeline
+and per-booking workspace (status, crew/fleet assignment with conflict
+rejection, transfers, travellers, payments/refunds, invoices, messages,
+internal notes, documents, history), resource-aware month calendar with
+conflict flags, fleet and guide management, transfers, quotes, invoices,
+payments, travellers, enquiries, audit log, and a drag-and-drop itinerary
+editor. Every mutation is permission-gated server-side and audited.
 
 ## Group travel
 

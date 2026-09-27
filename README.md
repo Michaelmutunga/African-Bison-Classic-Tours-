@@ -38,7 +38,16 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 7 payment and transaction infrastructure**.
+See `Agents.md`. Current status: **Phase 8 customer safari portal**.
+
+## Customer portal
+
+Self-registration with guest-booking claim, role-aware sign-in,
+`/dashboard`, `/my-safaris`, `/safari/[reference]` workspace (journey,
+travellers, payments, documents, messages tabs), pre-trip checklist,
+safari passport, in-trip today view, printable confirmation and
+itinerary, profile with password change. Owners see only their own
+bookings — isolation enforced server-side (404, never 403).
 
 ## Payments
 

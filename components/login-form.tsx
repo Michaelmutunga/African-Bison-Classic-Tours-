@@ -31,13 +31,28 @@ export function LoginForm({ next }: { next: string }) {
           password: String(form.get("password") ?? ""),
         }),
       });
-      const body = (await response.json()) as { ok?: boolean; message?: string };
+      const body = (await response.json()) as {
+        ok?: boolean;
+        message?: string;
+        user?: { role?: string };
+      };
       if (!response.ok || !body.ok) {
         setError(body.message ?? "Sign in failed.");
         setSending(false);
         return;
       }
-      router.push(next);
+      // Staff land in operations; customers in their portal.
+      const role = body.user?.role ?? "";
+      const staff = role !== "CUSTOMER";
+      router.push(
+        staff
+          ? next.startsWith("/admin")
+            ? next
+            : "/admin/tours"
+          : next.startsWith("/safari") || next.startsWith("/dashboard") || next.startsWith("/my-safaris") || next.startsWith("/profile")
+            ? next
+            : "/dashboard",
+      );
       router.refresh();
     } catch {
       setError("Network problem — check your connection and try again.");

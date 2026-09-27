@@ -16,6 +16,9 @@ const COMPANY = [
   { href: "/faq", label: "FAQ" },
   { href: "/travel-information", label: "Travel information" },
   { href: "/contact", label: "Contact" },
+  { href: "/login", label: "Sign in" },
+  { href: "/register", label: "Create account" },
+  { href: "/dashboard", label: "My safaris" },
 ] as const;
 
 export function SiteFooter() {

@@ -17,10 +17,12 @@ export default defineConfig({
   webServer: process.env.PLAYWRIGHT_NO_SERVER
     ? undefined
     : {
-        command: "npx next dev --webpack --port 3000",
+        // node-direct (never npx): npx can stall on registry checks when the
+    // network flaps, leaving zero output and a mystery timeout.
+    command: "node node_modules/next/dist/bin/next dev --webpack --port 3000",
         url: "http://127.0.0.1:3000/api/health",
-        reuseExistingServer: !process.env.CI,
-        timeout: 300_000,
+    reuseExistingServer: !process.env.CI,
+    timeout: 600_000,
       },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 });

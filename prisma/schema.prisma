@@ -367,6 +367,8 @@ model Booking {
   holds          Hold[]
   history        BookingStatusHistory[]
   payments       Payment[]
+  messages       CustomerMessage[]
+  documents      Document[]
 
   @@index([status])
   @@index([customerEmail])
@@ -374,15 +376,56 @@ model Booking {
 }
 
 model BookingTraveller {
+  id               String    @id @default(cuid())
+  bookingId        String
+  booking          Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  fullName         String
+  kind             String    @default("adult")
+  email            String?
+  dateOfBirth      DateTime?
+  nationality      String?
+  passportNumber   String?
+  passportExpiry   DateTime?
+  emergencyContact String?
+  dietaryNotes     String?
+  medicalNotes     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([bookingId])
+}
+
+// Customer ↔ staff thread scoped to one booking. Staff-only internal notes
+// land with operations (Phase 10); everything here is visible to the owner.
+model CustomerMessage {
   id        String   @id @default(cuid())
   bookingId String
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  fullName  String
-  kind      String   @default("adult")
-  email     String?
+  authorId  String?
+  authorRole String  @default("customer")
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([bookingId, createdAt])
+}
+
+// Staff-attached files and generated travel documents. Generated items
+// (confirmation, itinerary, receipts) are rendered on demand and listed
+// alongside uploads without storing duplicates.
+model Document {
+  id        String   @id @default(cuid())
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId    String?
+  kind      String
+  title     String
+  url       String?
+  body      String?
+  createdById String?
   createdAt DateTime @default(now())
 
   @@index([bookingId])
+  @@index([userId])
 }
 
 model BookingStatusHistory {

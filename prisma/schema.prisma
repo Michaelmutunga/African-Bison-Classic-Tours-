@@ -369,6 +369,7 @@ model Booking {
   payments       Payment[]
   messages       CustomerMessage[]
   documents      Document[]
+  group          Group?
 
   @@index([status])
   @@index([customerEmail])
@@ -389,10 +390,51 @@ model BookingTraveller {
   emergencyContact String?
   dietaryNotes     String?
   medicalNotes     String?
+  roomPreference   String?
+  // Group travel: which invitation created this record, and which account
+  // claimed it (both nullable — walk-ins and staff entries have neither).
+  inviteId         String?
+  invite           GroupInvite? @relation(fields: [inviteId], references: [id])
+  userId           String?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
   @@index([bookingId])
+  @@index([inviteId])
+}
+
+// Group travel (Phase 9). One group per booking; the booking owner is the
+// group organiser. Travellers join via single-use invitation tokens and can
+// only ever see their own record.
+model Group {
+  id                 String        @id @default(cuid())
+  bookingId          String        @unique
+  booking            Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  name               String
+  expectedTravellers Int?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  invites            GroupInvite[]
+}
+
+enum GroupInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+}
+
+model GroupInvite {
+  id         String            @id @default(cuid())
+  groupId    String
+  group      Group             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  email      String?
+  token      String            @unique
+  status     GroupInviteStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  acceptedAt DateTime?
+  travellers BookingTraveller[]
+
+  @@index([groupId, status])
 }
 
 // Customer ↔ staff thread scoped to one booking. Staff-only internal notes

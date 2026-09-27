@@ -6,6 +6,7 @@ import { ConflictError, NotFoundError } from "@/server/catalogue";
 import { BookingError } from "@/server/bookings";
 import { PaymentError } from "@/server/payments";
 import { PortalError } from "@/server/portal";
+import { GroupError } from "@/server/groups";
 import { ProviderError, ProviderTimeoutError } from "@/server/payments/providers";
 import { PricingError } from "@/server/pricing";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
@@ -39,6 +40,7 @@ export function errorResponse(error: unknown): NextResponse {
     error instanceof BookingError ||
     error instanceof PaymentError ||
     error instanceof PortalError ||
+    error instanceof GroupError ||
     error instanceof ProviderError
   ) {
     return NextResponse.json({ code: "pricing_error", message: error.message }, { status: 422 });

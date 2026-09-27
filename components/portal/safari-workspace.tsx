@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { GroupTab } from "@/components/groups/group-tab";
 import { MessageThread } from "@/components/portal/message-thread";
 import { PayPanel } from "@/components/portal/pay-panel";
 import { TravellerManager } from "@/components/portal/traveller-manager";
@@ -112,6 +113,11 @@ export function SafariWorkspace({ booking }: { booking: PortalBooking }) {
                     editable={travellersEditable}
                   />
                 ),
+              },
+              {
+                id: "group",
+                label: "Group",
+                content: <GroupTab reference={booking.reference} />,
               },
               {
                 id: "payments",

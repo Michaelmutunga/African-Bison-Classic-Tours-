@@ -38,7 +38,15 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 8 customer safari portal**.
+See `Agents.md`. Current status: **Phase 9 group travel**.
+
+## Group travel
+
+One group per booking. The organiser names the group and invites
+travellers by email; each traveller completes a private token-gated form
+(passport, emergency, dietary, room preference) that nobody else can see.
+Organisers track completion aggregates and rooming info — never passport
+or medical contents. Staff can invite and view the same dashboard.
 
 ## Customer portal
 

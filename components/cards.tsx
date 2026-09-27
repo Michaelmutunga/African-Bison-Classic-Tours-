@@ -2,7 +2,8 @@ import Link from "next/link";
 import { SafariImage } from "@/components/safari-image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
-import { formatDate, type Post } from "@/lib/content";
+import type { BlogPost } from "@prisma/client";
+import { formatDate } from "@/lib/content";
 import type { PublicDestinationSummary, PublicTourSummary } from "@/lib/catalog";
 
 export function TourCard({ tour }: { tour: PublicTourSummary }) {
@@ -53,8 +54,8 @@ export function DestinationCard({ destination }: { destination: PublicDestinatio
   );
 }
 
-export function PostCard({ post }: { post: Post }) {
-  const date = formatDate(post.publishedAt);
+export function PostCard({ post }: { post: Pick<BlogPost, "slug" | "title" | "excerpt" | "publishedAt"> }) {
+  const date = formatDate(post.publishedAt?.toISOString() ?? null);
   return (
     <Card className="flex h-full flex-col overflow-hidden">
       <SafariImage seed={post.slug} label={post.title} alt={`${post.title} — photo pending`} />

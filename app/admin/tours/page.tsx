@@ -18,7 +18,8 @@ export default async function AdminToursPage({
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="type-h3">Catalogue</h2>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
         <p className="type-small text-ink/70" aria-live="polite">
           {tours.length} tour{tours.length === 1 ? "" : "s"}
           {published === "all" ? " (including unpublished)" : " (published only)"}

@@ -35,8 +35,8 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
     throw error;
   }
   const [vehicles, guides, notes, transfers, payments, invoices, documents, messages] = await Promise.all([
-    listVehicles("active"),
-    listGuides("active"),
+    listVehicles(actor, "active"),
+    listGuides(actor, "active"),
     listInternalNotes(actor, id),
     prisma.transfer.findMany({ where: { bookingId: id }, orderBy: { scheduledAt: "asc" } }),
     prisma.payment.findMany({ where: { bookingId: id }, orderBy: { createdAt: "asc" } }),

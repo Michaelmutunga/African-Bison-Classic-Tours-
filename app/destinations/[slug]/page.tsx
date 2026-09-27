@@ -35,10 +35,12 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const destination = await publicDestination(slug);
-    return { title: destination.name, description: destination.excerpt };
-  } catch (error) {
-    if (error instanceof NotFoundError) return { title: "Destination not found" };
-    throw error;
+    return {
+      title: destination.seoTitle ?? destination.name,
+      description: destination.seoDescription ?? destination.excerpt,
+    };
+  } catch {
+    return { title: "Destination not found" };
   }
 }
 

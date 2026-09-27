@@ -119,7 +119,13 @@ export function TourForm({
   const errorFor = (name: string) => fieldErrors[name]?.[0];
 
   return (
-    <form onSubmit={onSubmit} aria-label={initial?.id ? "Edit tour" : "New tour"}>
+    <form
+      ref={(node) => {
+        node?.setAttribute("data-ready", "true");
+      }}
+      onSubmit={onSubmit}
+      aria-label={initial?.id ? "Edit tour" : "New tour"}
+    >
       {error ? (
         <div className="mb-4">
           <ErrorState title="Could not save" description={error} />

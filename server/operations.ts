@@ -80,7 +80,9 @@ export async function updateVehicle(actor: Actor | null, id: string, input: unkn
   return vehicle;
 }
 
-export async function listVehicles(status?: string) {
+export async function listVehicles(actor: Actor | null, status?: string) {
+  // Fleet data (and guide phone numbers below) is staff-only.
+  gateStaffRead(actor);
   return prisma.vehicle.findMany({
     where: status ? { status } : undefined,
     orderBy: { registration: "asc" },
@@ -140,7 +142,8 @@ export async function updateGuide(actor: Actor | null, id: string, input: unknow
   return guide;
 }
 
-export async function listGuides(status?: string) {
+export async function listGuides(actor: Actor | null, status?: string) {
+  gateStaffRead(actor);
   return prisma.guide.findMany({
     where: status ? { status } : undefined,
     orderBy: { name: "asc" },

@@ -7,6 +7,7 @@ import { BookingError } from "@/server/bookings";
 import { PaymentError } from "@/server/payments";
 import { PortalError } from "@/server/portal";
 import { GroupError } from "@/server/groups";
+import { ContentError } from "@/server/content-admin";
 import { OperationsError } from "@/server/operations";
 import { ProviderError, ProviderTimeoutError } from "@/server/payments/providers";
 import { PricingError } from "@/server/pricing";
@@ -42,6 +43,7 @@ export function errorResponse(error: unknown): NextResponse {
     error instanceof PaymentError ||
     error instanceof PortalError ||
     error instanceof GroupError ||
+    error instanceof ContentError ||
     error instanceof OperationsError ||
     error instanceof ProviderError
   ) {

@@ -2,11 +2,13 @@ import { DeleteResource, GuideForm, VehicleForm } from "@/components/admin/resou
 import { Badge } from "@/components/ui/badge";
 import { DataTable, TableBody, TableCell, TableHead, TableHeaderCell } from "@/components/ui/table";
 import { listGuides, listVehicles } from "@/server/operations";
+import { requestActor } from "@/server/http";
 
 export const dynamic = "force-dynamic";
 
 export default async function FleetPage() {
-  const [vehicles, guides] = await Promise.all([listVehicles(), listGuides()]);
+  const actor = await requestActor();
+  const [vehicles, guides] = await Promise.all([listVehicles(actor), listGuides(actor)]);
 
   return (
     <div className="grid gap-8">

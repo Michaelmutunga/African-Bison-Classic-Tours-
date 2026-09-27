@@ -7,6 +7,8 @@ import { testActor, unique } from "@/tests/db";
 import {
   OperationsError,
   addInternalNote,
+  listGuides,
+  listVehicles,
   assignGuide,
   assignVehicle,
   calendarEvents,
@@ -116,6 +118,12 @@ describe("assignments and conflicts", () => {
     await deleteGuide(admin, guide.id);
     await prisma.booking.delete({ where: { id: booking.id } });
     await prisma.booking.delete({ where: { id: other.id } });
+  });
+
+  it("keeps fleet and guide lists staff-only", async () => {
+    await expect(listVehicles(null)).rejects.toThrow(UnauthorizedError);
+    await expect(listGuides(finance)).rejects.toThrow(ForbiddenError);
+    expect((await listVehicles(admin)).length).toBeGreaterThanOrEqual(0);
   });
 
   it("serializes concurrent assignments to one winner", async () => {

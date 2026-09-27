@@ -57,13 +57,15 @@ model Session {
 // ---------------------------------------------------------------------------
 
 model Destination {
-  id         String        @id @default(cuid())
-  slug       String        @unique
-  name       String
-  country    String
-  excerpt    String
-  highlights String[]      @default([])
-  published  Boolean       @default(true)
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  name           String
+  country        String
+  excerpt        String
+  highlights     String[]      @default([])
+  published      Boolean       @default(true)
+  seoTitle       String?
+  seoDescription String?
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   tours      TourProduct[] @relation("TourDestinations")
@@ -93,6 +95,8 @@ model TourProduct {
   includes      String[]       @default([])
   excludes      String[]       @default([])
   published     Boolean        @default(false)
+  seoTitle       String?
+  seoDescription String?
   sourceUrl     String?
   sourceUpdated DateTime?
   createdAt     DateTime       @default(now())
@@ -719,6 +723,69 @@ model InvoiceItem {
   totalCents  Int
 
   @@index([invoiceId])
+}
+
+// ---------------------------------------------------------------------------
+// Content management (Phase 11)
+// ---------------------------------------------------------------------------
+
+enum PublishStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+model BlogPost {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  title          String
+  excerpt        String
+  paragraphs     String[]      @default([])
+  author         String?
+  status         PublishStatus @default(DRAFT)
+  publishedAt    DateTime?
+  scheduledFor   DateTime?
+  category       String?
+  tags           String[]      @default([])
+  seoTitle       String?
+  seoDescription String?
+  sourceUrl      String?
+  createdById    String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model Faq {
+  id        String   @id @default(cuid())
+  question  String
+  answer    String
+  order     Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, order])
+}
+
+// Media registry (Phase 11). URL-based records with attribution; binary
+// uploads behind a storage abstraction land in a later phase.
+model MediaAsset {
+  id        String   @id @default(cuid())
+  url       String
+  alt       String
+  caption   String?
+  credit    String?
+  width     Int?
+  height    Int?
+  kind      String   @default("image")
+  createdById String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind])
 }
 
 // ---------------------------------------------------------------------------

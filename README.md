@@ -38,7 +38,15 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 10 operations platform**.
+See `Agents.md`. Current status: **Phase 11 content management**.
+
+## Content studio (`/admin`)
+
+Journal posts with draft/scheduled/published/archived states, scheduled
+auto-publishing, FAQ manager with ordering, media registry with alt-text
+and attribution requirements, site settings without code deploys, and SEO
+title/description overrides on tours, destinations and posts. The public
+journal, FAQ and SEO metadata all render from the database.
 
 ## Operations console (`/admin`)
 

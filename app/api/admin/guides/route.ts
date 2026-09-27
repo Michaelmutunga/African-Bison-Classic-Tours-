@@ -5,7 +5,7 @@ import { errorResponse, readJson, requestActor } from "@/server/http";
 export async function GET(request: Request) {
   try {
     const status = new URL(request.url).searchParams.get("status") ?? undefined;
-    return NextResponse.json({ ok: true, guides: await listGuides(status) });
+    return NextResponse.json({ ok: true, guides: await listGuides(await requestActor(), status) });
   } catch (error) {
     return errorResponse(error);
   }

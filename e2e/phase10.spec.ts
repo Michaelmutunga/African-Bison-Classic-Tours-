@@ -30,8 +30,15 @@ test("customers cannot reach operations", async ({ request }) => {
   const session = setCookie.split(";")[0];
   const vehicles = await request.get("/api/admin/vehicles", { headers: { cookie: session ?? "" } });
   expect(vehicles.status()).toBe(403);
-  const dashboard = await request.get("/api/admin/dashboard");
-  expect(dashboard.status()).toBe(401);
+  // Logged-in customers are forbidden (403); anonymous callers get 401.
+  const dashboard = await request.get("/api/admin/dashboard", { headers: { cookie: session ?? "" } });
+  expect(dashboard.status()).toBe(403);
+  // Fresh context: the register call above stored a session cookie in this
+  // context's jar, so anonymity needs a clean room.
+  const cleanRoom = await baseRequest.newContext({ baseURL: BASE_URL });
+  const anonymous = await cleanRoom.get("/api/admin/dashboard");
+  expect(anonymous.status()).toBe(401);
+  await cleanRoom.dispose();
 });
 
 test("operations dashboard shows real numbers", async ({ page }) => {
@@ -39,8 +46,11 @@ test("operations dashboard shows real numbers", async ({ page }) => {
   await page.locator('form[data-ready="true"]').waitFor({ timeout: 60_000 });
   await page.getByLabel("Email").fill(E2E_ADMIN.email);
   await page.getByLabel("Password").fill(E2E_ADMIN.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/admin/, { timeout: 60_000 });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/admin/, { timeout: 10_000 });
+  }).toPass({ timeout: 120_000 });
+  await page.goto("/admin", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Active bookings")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText("Booking pipeline")).toBeVisible();
 });
@@ -122,13 +132,19 @@ test("booking workspace advances status and records notes", async ({ page }) => 
   await page.locator('form[data-ready="true"]').waitFor({ timeout: 60_000 });
   await page.getByLabel("Email").fill(E2E_ADMIN.email);
   await page.getByLabel("Password").fill(E2E_ADMIN.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/admin/, { timeout: 60_000 });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/admin/, { timeout: 10_000 });
+  }).toPass({ timeout: 120_000 });
 
   await page.goto(`/admin/bookings/${target.id}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Workspace Guest" })).toBeVisible({ timeout: 60_000 });
-  await page.getByRole("button", { name: "→ HOLD" }).click();
-  await expect(page.getByText("HOLD", { exact: true }).first()).toBeVisible({ timeout: 60_000 });
+  // Re-click tolerant: pre-hydration clicks are no-ops, post-success the button is gone.
+  await expect(async () => {
+    const hold = page.getByRole("button", { name: "→ HOLD" });
+    if (await hold.count()) await hold.click();
+    await expect(page.getByText("HOLD", { exact: true }).first()).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 120_000 });
 
   await page.getByLabel(/Internal note/).fill("E2E operations note.");
   await page.getByRole("button", { name: "Add note" }).click();
@@ -161,11 +177,14 @@ test("itinerary reorder persists through the editor", async ({ page }) => {
   await page.locator('form[data-ready="true"]').waitFor({ timeout: 60_000 });
   await page.getByLabel("Email").fill(E2E_ADMIN.email);
   await page.getByLabel("Password").fill(E2E_ADMIN.password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page).toHaveURL(/\/admin/, { timeout: 60_000 });
+  await expect(async () => {
+    await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(/\/admin/, { timeout: 10_000 });
+  }).toPass({ timeout: 120_000 });
 
   await page.goto(`/admin/tours/${tour.id}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Edit tour" })).toBeVisible({ timeout: 60_000 });
+  await page.locator('form[data-ready="true"]').waitFor({ timeout: 60_000 });
   await page.getByRole("button", { name: "Move day 1 later" }).click();
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page).toHaveURL(/\/admin\/tours$/, { timeout: 60_000 });

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { publicDestinations, publicTours } from "@/lib/catalog";
-import { posts } from "@/lib/content";
+import { publicPosts } from "@/server/content-admin";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
@@ -21,8 +21,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
   let tours: Awaited<ReturnType<typeof publicTours>> = [];
   let destinations: Awaited<ReturnType<typeof publicDestinations>> = [];
+  let posts: Awaited<ReturnType<typeof publicPosts>> = [];
   try {
-    [tours, destinations] = await Promise.all([publicTours(), publicDestinations()]);
+    [tours, destinations, posts] = await Promise.all([publicTours(), publicDestinations(), publicPosts()]);
   } catch {
     // Build-time database absence: sitemap degrades to static pages only.
   }
@@ -47,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...posts.map((post) => ({
       url: `${SITE_URL}/blog/${post.slug}`,
-      lastModified: post.publishedAt ? new Date(post.publishedAt) : new Date(),
+      lastModified: post.publishedAt ?? post.updatedAt,
       changeFrequency: "monthly" as const,
       priority: 0.5,
     })),

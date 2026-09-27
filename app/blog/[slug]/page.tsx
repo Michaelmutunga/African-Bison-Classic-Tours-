@@ -5,12 +5,20 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { PostCard } from "@/components/cards";
 import { JsonLd, breadcrumbJsonLd } from "@/components/json-ld";
 import { Container } from "@/components/ui/layout";
-import { formatDate, getPost, posts } from "@/lib/content";
+import { formatDate } from "@/lib/content";
+import { publicPostBySlug, publicPosts } from "@/server/content-admin";
+import { NotFoundError } from "@/server/catalogue";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
 
+export const dynamic = "force-dynamic";
+
 export async function generateStaticParams() {
-  return posts.map((post) => ({ slug: post.slug }));
+  try {
+    return (await publicPosts()).map((post) => ({ slug: post.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({
@@ -19,13 +27,19 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPost(slug);
-  if (!post) return { title: "Article not found" };
-  return {
-    title: post.title,
-    description: post.excerpt,
-    openGraph: { title: post.title, description: post.excerpt, type: "article" },
-  };
+  try {
+    const post = await publicPostBySlug(slug);
+    const title = post.seoTitle ?? post.title;
+    const description = post.seoDescription ?? post.excerpt;
+    return {
+      title,
+      description,
+      openGraph: { title, description, type: "article" },
+    };
+  } catch (error) {
+    if (error instanceof NotFoundError) return { title: "Article not found" };
+    throw error;
+  }
 }
 
 export default async function BlogDetailPage({
@@ -34,10 +48,15 @@ export default async function BlogDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = getPost(slug);
-  if (!post) notFound();
-  const date = formatDate(post.publishedAt);
-  const related = posts.filter((p) => p.slug !== post.slug).slice(0, 3);
+  let post;
+  try {
+    post = await publicPostBySlug(slug);
+  } catch (error) {
+    if (error instanceof NotFoundError) notFound();
+    throw error;
+  }
+  const date = formatDate(post.publishedAt?.toISOString() ?? null);
+  const related = (await publicPosts()).filter((p) => p.slug !== post.slug).slice(0, 3);
   const crumbs = [
     { label: "Home", href: "/" },
     { label: "Journal", href: "/blog" },
@@ -54,7 +73,7 @@ export default async function BlogDetailPage({
           headline: post.title,
           description: post.excerpt,
           url: `${SITE_URL}/blog/${post.slug}`,
-          ...(post.publishedAt ? { datePublished: post.publishedAt } : {}),
+          ...(post.publishedAt ? { datePublished: post.publishedAt.toISOString() } : {}),
           author: { "@type": "Organization", name: "African Bison Classic Tours" },
         }}
       />

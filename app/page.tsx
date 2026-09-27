@@ -9,18 +9,20 @@ import {
   publicTourCount,
   publicTours,
 } from "@/lib/catalog";
-import { experiences, posts } from "@/lib/content";
+import { publicPosts } from "@/server/content-admin";
+import { experiences } from "@/lib/content";
 
 // Public catalogue reads need the database at request time.
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [categories, destinations, tourCount] = await Promise.all([
+  const [categories, destinations, tourCount, allPosts] = await Promise.all([
     publicCategories(),
     publicDestinations(),
     publicTourCount(),
+    publicPosts(),
   ]);
-  const latestPosts = posts.slice(0, 3);
+  const latestPosts = allPosts.slice(0, 3);
   const featuredDestinations = destinations.slice(0, 8);
 
   return (
@@ -165,7 +167,7 @@ export default async function HomePage() {
         <SectionHeading
           eyebrow="Journal"
           title="Planning guides and field notes"
-          lede={`${posts.length} articles on seasons, costs, packing, photography and destinations.`}
+          lede={`${allPosts.length} articles on seasons, costs, packing, photography and destinations.`}
         />
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {latestPosts.map((post) => (

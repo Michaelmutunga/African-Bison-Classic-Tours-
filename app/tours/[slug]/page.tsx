@@ -35,10 +35,12 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const tour = await publicTour(slug);
+    const title = tour.seoTitle ?? tour.title;
+    const description = tour.seoDescription ?? tour.excerpt;
     return {
-      title: tour.title,
-      description: tour.excerpt,
-      openGraph: { title: tour.title, description: tour.excerpt, type: "article" },
+      title,
+      description,
+      openGraph: { title, description, type: "article" },
     };
   } catch (error) {
     if (error instanceof NotFoundError) return { title: "Safari not found" };

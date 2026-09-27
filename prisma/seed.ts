@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import aboutJson from "../data/content/about.json" with { type: "json" };
 import destinationsJson from "../data/content/destinations.json" with { type: "json" };
+import faqsJson from "../data/content/faqs.json" with { type: "json" };
 import postsJson from "../data/content/posts.json" with { type: "json" };
 import toursJson from "../data/content/tours.json" with { type: "json" };
 
@@ -285,9 +286,55 @@ async function seedCatalogue() {
   void postsJson;
 }
 
+type PostSeed = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  publishedAt: string | null;
+  paragraphs: string[];
+  sourceUrl: string;
+};
+
+type FaqSeed = { question: string; answer: string; order: number };
+
+async function seedEditorial() {
+  // Insert-only: re-running the seed never overwrites staff-edited posts.
+  const posts = (postsJson as { posts: PostSeed[] }).posts.filter((p) => p.paragraphs.length >= 3);
+  let postCount = 0;
+  for (const post of posts) {
+    const existing = await prisma.blogPost.findUnique({ where: { slug: post.slug } });
+    if (existing) continue;
+    await prisma.blogPost.create({
+      data: {
+        slug: post.slug,
+        title: post.title,
+        excerpt: post.excerpt.slice(0, 500),
+        paragraphs: post.paragraphs.slice(0, 40),
+        status: "PUBLISHED",
+        publishedAt: post.publishedAt ? new Date(post.publishedAt) : new Date(),
+        sourceUrl: post.sourceUrl,
+      },
+    });
+    postCount += 1;
+  }
+
+  const faqs = (faqsJson as { faqs: FaqSeed[] }).faqs;
+  let faqCount = 0;
+  for (const faq of faqs) {
+    const existing = await prisma.faq.findFirst({ where: { question: faq.question } });
+    if (existing) continue;
+    await prisma.faq.create({
+      data: { question: faq.question, answer: faq.answer, order: faq.order, published: true },
+    });
+    faqCount += 1;
+  }
+  console.log(`Editorial seeded: ${postCount} new posts, ${faqCount} new FAQs.`);
+}
+
 async function main() {
   await seedSettings();
   await seedCatalogue();
+  await seedEditorial();
   console.log("Seed complete.");
 }
 

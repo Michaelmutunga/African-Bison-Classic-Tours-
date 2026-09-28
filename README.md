@@ -38,7 +38,9 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 13 safari concierge**.
+See `Agents.md`. Current status: **Production-ready through Phase 16**
+(hardened, Docker-verified, full QA sweep green). Deployment: `docs/DEPLOYMENT.md`.
+API: `docs/API.md`. Security posture: `docs/SECURITY.md`.
 
 ## Safari concierge
 

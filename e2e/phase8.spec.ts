@@ -107,9 +107,11 @@ test("customers cannot see each other's safaris", async ({ page, request }) => {
   const { reference } = (await other.json()) as { reference: string };
   await register(page, `iso-${stamp}`);
   await page.goto(`/safari/${reference}`, { waitUntil: "domcontentloaded" });
-  await expect(page.getByText("This page could not be found.").first()).toBeVisible({
+  // Custom not-found page (Phase 14): isolation holds, branded copy renders.
+  await expect(page.getByText("This trail has gone quiet").first()).toBeVisible({
     timeout: 60_000,
   });
+  await expect(page.getByText(reference)).toHaveCount(0);
 });
 
 test("portal works on a small screen", async ({ page }) => {

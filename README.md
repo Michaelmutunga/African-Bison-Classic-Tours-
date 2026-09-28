@@ -38,7 +38,19 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 12 notifications and communication**.
+See `Agents.md`. Current status: **Phase 13 safari concierge**.
+
+## Safari concierge
+
+Controlled assistant behind `POST /api/concierge` and the site-wide
+“Ask us” widget. Deterministic and grounded: public answers come from
+published destinations, tours, FAQs and contact settings; signed-in
+customers additionally get their OWN bookings (itinerary, balance,
+guide contact, pickups, checklist) — never another customer's data,
+never passport numbers or payment credentials. The only executable
+action is a planner callback, and only after explicit confirmation;
+payments, refunds, discounts and cancellations are always refused with
+a human handoff. See `server/concierge/`.
 
 ## Notifications
 

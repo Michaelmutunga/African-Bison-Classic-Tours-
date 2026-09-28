@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
+import { ConciergeWidget } from "@/components/concierge/concierge-widget";
 import { JsonLd, organizationJsonLd } from "@/components/json-ld";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -43,6 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SiteHeader />
         <main id="content">{children}</main>
         <SiteFooter />
+        <ConciergeWidget />
       </body>
     </html>
   );

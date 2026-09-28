@@ -19,7 +19,12 @@ Roles: `SUPER_ADMIN`, `ADMIN`, `CONTENT_MANAGER` (write + publish),
 - `/admin/calendar?month=N` — bookings, transfers, holds with conflict flags.
 - `/admin/fleet` — vehicles and guides (delete blocked while assigned).
 - `/admin/transfers`, `/admin/travellers`, `/admin/quotes`, `/admin/invoices`,
-  `/admin/payments`, `/admin/inquiries`, `/admin/audit-logs`.
+  `/admin/payments`, `/admin/inquiries`, `/admin/notifications`,
+  `/admin/audit-logs`.
+- `/admin/notifications` — idempotent outbox log (email + in-app sent,
+  WhatsApp/SMS fail closed until connected). Trip-start, balance and
+  hold-expiring reminders run from `POST /api/admin/maintenance/sweep`,
+  which a scheduler should call (repeats are dedupe-safe).
 - Assignments reject overlaps with 409 naming the clashing booking; the
   calendar independently flags any that slip through.
 - No demo fleet is seeded — create the real vehicles and guides here.

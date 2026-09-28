@@ -1,6 +1,8 @@
 import { Prisma, type BookingStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { formatMoney } from "@/lib/money";
+import { notify } from "@/server/notifications/dispatch";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import { NotFoundError, type Actor } from "@/server/catalogue";
 import { hasPermission } from "@/lib/permissions";
@@ -264,6 +266,29 @@ export async function applyWebhookEvent(
     return applySucceeded(tx, payment.id, event.providerRef, actorId);
   });
   if (outcome.rejected) throw new PaymentError(`Payment cannot be applied: ${outcome.rejected}`);
+  if (outcome.applied) {
+    const fresh = await prisma.payment.findUniqueOrThrow({
+      where: { id: payment.id },
+      include: { booking: true },
+    });
+    const balance = Math.max(0, fresh.booking.totalCents - fresh.booking.paidCents);
+    await notify({
+      event: "payment.received",
+      channels: ["EMAIL", "IN_APP"],
+      to: { email: fresh.booking.customerEmail, userId: fresh.booking.userId ?? undefined },
+      bookingId: fresh.bookingId,
+      template: {
+        name: "paymentReceived",
+        input: {
+          name: fresh.booking.customerName,
+          reference: fresh.booking.reference,
+          amount: formatMoney(fresh.amountCents, fresh.currency),
+          balance: formatMoney(balance, fresh.currency),
+        },
+      },
+      dedupeKey: `payment:${fresh.id}:received`,
+    });
+  }
   return { applied: outcome.applied, paymentId: payment.id };
 }
 
@@ -314,7 +339,7 @@ export async function refundPayment(actor: Actor | null, input: unknown) {
     if (existing) return existing;
   }
 
-  return prisma.$transaction(async (tx) => {
+  const outcome = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.findUnique({
       where: { id: data.paymentId },
       include: { refunds: true, booking: true },
@@ -352,8 +377,24 @@ export async function refundPayment(actor: Actor | null, input: unknown) {
       data: { paidCents: { decrement: amount } },
     });
     await audit(tx, actor?.id ?? null, "payment.refunded", refund.id);
-    return refund;
+    return { refund, bookingEmail: payment.booking.customerEmail, bookingUserId: payment.booking.userId, bookingReference: payment.booking.reference, bookingName: payment.booking.customerName, bookingId: payment.bookingId, currency: payment.currency };
   });
+  await notify({
+    event: "refund.issued",
+    channels: ["EMAIL", "IN_APP"],
+    to: { email: outcome.bookingEmail, userId: outcome.bookingUserId ?? undefined },
+    bookingId: outcome.bookingId,
+    template: {
+      name: "refundIssued",
+      input: {
+        name: outcome.bookingName,
+        reference: outcome.bookingReference,
+        amount: formatMoney(outcome.refund.amountCents, outcome.currency),
+      },
+    },
+    dedupeKey: `refund:${outcome.refund.id}:issued`,
+  });
+  return outcome.refund;
 }
 
 export async function getPayment(actor: Actor | null, id: string, ownerEmail?: string) {

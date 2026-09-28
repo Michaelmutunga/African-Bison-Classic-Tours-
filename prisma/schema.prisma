@@ -789,6 +789,45 @@ model MediaAsset {
 }
 
 // ---------------------------------------------------------------------------
+// Notifications (Phase 12). The log is the outbox: every dispatch attempt
+// is recorded; duplicates collapse on dedupeKey.
+// ---------------------------------------------------------------------------
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+  WHATSAPP
+  SMS
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+model Notification {
+  id          String              @id @default(cuid())
+  event       String
+  channel     NotificationChannel
+  status      NotificationStatus  @default(QUEUED)
+  toAddress   String?
+  userId      String?
+  bookingId   String?
+  subject     String?
+  body        String?
+  providerRef String?
+  error       String?
+  dedupeKey   String?             @unique
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([bookingId])
+  @@index([event, status])
+}
+
+// ---------------------------------------------------------------------------
 // Settings, inquiries, audit
 // ---------------------------------------------------------------------------
 

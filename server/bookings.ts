@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { Prisma, type BookingStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { formatMoney } from "@/lib/money";
+import { notify } from "@/server/notifications/dispatch";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import { ConflictError, NotFoundError, type Actor } from "@/server/catalogue";
 import { hasPermission } from "@/lib/permissions";
@@ -179,6 +181,109 @@ export async function applyTransition(
   if (to === "CANCELLED" || to === "EXPIRED") {
     await tx.hold.updateMany({ where: { bookingId, status: "ACTIVE" }, data: { status: "RELEASED" } });
   }
+  await notifyBookingTransition(booking, to);
+}
+
+async function notifyBookingTransition(
+  booking: {
+    id: string;
+    reference: string;
+    customerName: string;
+    customerEmail: string;
+    userId: string | null;
+    currency: string;
+    totalCents: number;
+    travelStart: Date | null;
+    travelEnd: Date | null;
+  },
+  to: BookingStatus,
+): Promise<void> {
+  const toCustomer = { email: booking.customerEmail, userId: booking.userId ?? undefined };
+  const dates =
+    booking.travelStart && booking.travelEnd
+      ? `${booking.travelStart.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })} → ${booking.travelEnd.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}`
+      : undefined;
+  if (to === "CONFIRMED") {
+    await notify({
+      event: "booking.confirmed",
+      channels: ["EMAIL", "IN_APP"],
+      to: toCustomer,
+      bookingId: booking.id,
+      template: {
+        name: "bookingConfirmed",
+        input: { name: booking.customerName, reference: booking.reference, date: dates },
+      },
+      dedupeKey: `booking:${booking.id}:CONFIRMED`,
+    });
+  } else if (to === "CANCELLED") {
+    await notify({
+      event: "booking.cancelled",
+      channels: ["EMAIL", "IN_APP"],
+      to: toCustomer,
+      bookingId: booking.id,
+      template: { name: "bookingCancelled", input: { name: booking.customerName, reference: booking.reference } },
+      dedupeKey: `booking:${booking.id}:CANCELLED`,
+    });
+  } else if (to === "PRE_TRIP") {
+    await notify({
+      event: "booking.pre_trip",
+      channels: ["EMAIL", "IN_APP"],
+      to: toCustomer,
+      bookingId: booking.id,
+      template: {
+        name: "preTripChecklist",
+        input: {
+          name: booking.customerName,
+          reference: booking.reference,
+          details: [
+            "Passport details for every traveller.",
+            "Final balance settled.",
+            dates ? `Travel dates confirmed: ${dates}.` : "Travel dates confirmed with your planner.",
+            `Total: ${formatMoney(booking.totalCents, booking.currency)}.`,
+          ],
+        },
+      },
+      dedupeKey: `booking:${booking.id}:PRE_TRIP`,
+    });
+  } else if (to === "ON_SAFARI") {
+    await notify({
+      event: "trip.started",
+      channels: ["EMAIL", "IN_APP"],
+      to: toCustomer,
+      bookingId: booking.id,
+      template: {
+        name: "tripItinerary",
+        input: {
+          name: booking.customerName,
+          reference: booking.reference,
+          details: [
+            dates ? `Your safari is underway: ${dates}.` : "Your safari is underway.",
+            "Today's plan, guide contact and pickup point are in your safari portal.",
+          ],
+        },
+      },
+      dedupeKey: `booking:${booking.id}:ON_SAFARI`,
+    });
+  } else if (to === "COMPLETED") {
+    await notify({
+      event: "trip.completed",
+      channels: ["EMAIL", "IN_APP"],
+      to: toCustomer,
+      bookingId: booking.id,
+      template: {
+        name: "tripItinerary",
+        input: {
+          name: booking.customerName,
+          reference: booking.reference,
+          details: [
+            "Karibu back — your safari is marked complete.",
+            "Your journey history, receipts and documents stay in your safari portal.",
+          ],
+        },
+      },
+      dedupeKey: `booking:${booking.id}:COMPLETED`,
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -247,7 +352,7 @@ export async function createHold(
   const booking = await prisma.booking.findUnique({ where: { id: request.bookingId } });
   if (!booking) throw new NotFoundError("Booking");
 
-  return prisma.$transaction(async (tx) => {
+  const hold = await prisma.$transaction(async (tx) => {
     return createHoldInTx(
       tx,
       actor?.id ?? null,
@@ -262,6 +367,15 @@ export async function createHold(
       excludeBookingId,
     );
   });
+  await notify({
+    event: "hold.created",
+    channels: ["IN_APP"],
+    bookingId: request.bookingId,
+    subject: "Hold placed",
+    body: `${request.quantity} × ${request.resourceType}:${request.resourceId} held until ${hold.expiresAt.toLocaleString("en-GB")}. Confirm before it lapses.`,
+    dedupeKey: `hold:${hold.id}:created`,
+  });
+  return hold;
 }
 
 export async function renewHold(
@@ -506,7 +620,7 @@ export async function cancelBooking(
     throw new BookingError(`Bookings in ${booking.status} cannot be cancelled`);
   }
   const target = booking.paidCents > 0 ? "REFUND_PENDING" : "CANCELLED";
-  return prisma.$transaction(async (tx) => {
+  const cancelled = await prisma.$transaction(async (tx) => {
     // Bypass applyTransition's fixed map: cancellation routes by payment.
     const fresh = await tx.booking.findUnique({ where: { id } });
     if (!fresh || !CANCELLABLE.includes(fresh.status)) {
@@ -520,6 +634,22 @@ export async function cancelBooking(
       include: { travellers: true, holds: true },
     });
   });
+  await notify({
+    event: "booking.cancelled",
+    channels: ["EMAIL", "IN_APP"],
+    to: { email: cancelled.customerEmail, userId: cancelled.userId ?? undefined },
+    bookingId: cancelled.id,
+    template: {
+      name: "bookingCancelled",
+      input: {
+        name: cancelled.customerName,
+        reference: cancelled.reference,
+        details: target === "REFUND_PENDING" ? ["Our team will process your refund manually."] : [],
+      },
+    },
+    dedupeKey: `booking:${cancelled.id}:${target}`,
+  });
+  return cancelled;
 }
 
 export async function setBookingStatus(actor: Actor | null, id: string, to: BookingStatus, reason?: string) {
@@ -534,7 +664,11 @@ export async function setBookingStatus(actor: Actor | null, id: string, to: Book
 }
 
 export async function sweepExpirations(now: Date = new Date()): Promise<{ holds: number; bookings: number }> {
-  return prisma.$transaction(async (tx) => {
+  const expiredHolds = await prisma.hold.findMany({
+    where: { status: "ACTIVE", expiresAt: { lt: now } },
+    select: { id: true, bookingId: true, resourceType: true, resourceId: true },
+  });
+  const result = await prisma.$transaction(async (tx) => {
     const holds = await tx.hold.updateMany({
       where: { status: "ACTIVE", expiresAt: { lt: now } },
       data: { status: "EXPIRED" },
@@ -555,6 +689,22 @@ export async function sweepExpirations(now: Date = new Date()): Promise<{ holds:
     }
     return { holds: holds.count, bookings };
   });
+  // Re-check statuses post-sweep so renewed holds are never misreported.
+  const confirmed = await prisma.hold.findMany({
+    where: { id: { in: expiredHolds.map((h) => h.id) }, status: "EXPIRED" },
+    select: { id: true, bookingId: true, resourceType: true, resourceId: true },
+  });
+  for (const hold of confirmed) {
+    await notify({
+      event: "hold.expired",
+      channels: ["IN_APP"],
+      bookingId: hold.bookingId,
+      subject: "Hold expired",
+      body: `${hold.resourceType}:${hold.resourceId} was released. Ask your planner to re-hold it.`,
+      dedupeKey: `hold:${hold.id}:expired`,
+    });
+  }
+  return result;
 }
 
 export async function getBookingByReference(reference: string, email: string) {

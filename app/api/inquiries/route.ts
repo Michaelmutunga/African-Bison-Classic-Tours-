@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { inquiryReference, inquirySchema } from "@/lib/inquiries";
 import { prisma } from "@/lib/prisma";
+import { notify } from "@/server/notifications/dispatch";
 
 export async function POST(request: Request) {
   let payload: unknown;
@@ -53,6 +54,14 @@ export async function POST(request: Request) {
           : (JSON.parse(JSON.stringify(data.metadata)) as Prisma.InputJsonValue),
     },
     select: { reference: true },
+  });
+
+  await notify({
+    event: "inquiry.received",
+    channels: ["EMAIL"],
+    to: { email: data.email },
+    template: { name: "inquiryReceived", input: { name: data.name, reference: inquiry.reference } },
+    dedupeKey: `inquiry:${inquiry.reference}`,
   });
 
   return NextResponse.json({ ok: true, reference: inquiry.reference }, { status: 201 });

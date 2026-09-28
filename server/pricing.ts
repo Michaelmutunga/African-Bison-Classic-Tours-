@@ -1,7 +1,8 @@
 import { Prisma, type QuoteStatus } from "@prisma/client";
 import { z } from "zod";
-import { BASE_CURRENCY, CHILD_RATE_BPS, DEPOSIT_BPS, SUPPORTED_CURRENCIES, applyBps, convertCents } from "@/lib/money";
+import { BASE_CURRENCY, CHILD_RATE_BPS, DEPOSIT_BPS, SUPPORTED_CURRENCIES, applyBps, convertCents, formatMoney } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
+import { notify } from "@/server/notifications/dispatch";
 import { ConflictError, NotFoundError, type Actor } from "@/server/catalogue";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 
@@ -503,6 +504,32 @@ export async function setQuoteStatus(actor: Actor | null, id: string, status: Qu
   await prisma.auditLog.create({
     data: { actor: actor?.id ?? "system", action: `quote.${status.toLowerCase()}`, resource: "quote", resourceId: id },
   });
+  if (status === "SENT" && updated.customerEmail) {
+    await notify({
+      event: "quote.sent",
+      channels: ["EMAIL"],
+      to: { email: updated.customerEmail },
+      template: {
+        name: "quoteSent",
+        input: {
+          name: updated.customerName ?? undefined,
+          reference: updated.number,
+          amount: formatMoney(updated.totalCents, updated.currency),
+        },
+      },
+      dedupeKey: `quote:${updated.id}:SENT`,
+    });
+  }
+  if (status === "ACCEPTED" && updated.customerEmail) {
+    await notify({
+      event: "quote.accepted",
+      channels: ["EMAIL", "IN_APP"],
+      to: { email: updated.customerEmail },
+      subject: `Quote accepted (${updated.number})`,
+      body: `Thank you — quote ${updated.number} (${formatMoney(updated.totalCents, updated.currency)}) was accepted. A planner will convert it into a reservation and confirm availability.`,
+      dedupeKey: `quote:${updated.id}:ACCEPTED`,
+    });
+  }
   return updated;
 }
 

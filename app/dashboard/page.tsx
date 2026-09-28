@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { NotificationFeed } from "@/components/portal/notifications";
 import { PortalShell } from "@/components/portal/portal-shell";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
@@ -74,6 +75,8 @@ export default async function DashboardPage() {
           </CardBody>
         </Card>
       )}
+
+      <NotificationFeed />
 
       {bookings.length > 0 ? (
         <div className="mt-6">

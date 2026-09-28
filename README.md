@@ -38,7 +38,15 @@ Health: `GET /api/health`
 
 ## Phases
 
-See `Agents.md`. Current status: **Phase 11 content management**.
+See `Agents.md`. Current status: **Phase 12 notifications and communication**.
+
+## Notifications
+
+Event-driven email + in-app notifications with an idempotent outbox log.
+Ten branded templates, a Resend adapter (active only with credentials, log
+fallback in development), and WhatsApp/SMS boundaries that fail closed.
+Trip-start and balance reminders run from the maintenance sweep. See
+`/admin/notifications` and the customer dashboard feed.
 
 ## Content studio (`/admin`)
 

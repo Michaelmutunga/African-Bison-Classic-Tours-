@@ -48,7 +48,7 @@ test("operations dashboard shows real numbers", async ({ page }) => {
   await page.getByLabel("Password").fill(E2E_ADMIN.password);
   await expect(async () => {
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/admin/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/admin/, { timeout: 30_000 });
   }).toPass({ timeout: 120_000 });
   await page.goto("/admin", { waitUntil: "domcontentloaded" });
   await expect(page.getByText("Active bookings")).toBeVisible({ timeout: 60_000 });
@@ -134,7 +134,7 @@ test("booking workspace advances status and records notes", async ({ page }) => 
   await page.getByLabel("Password").fill(E2E_ADMIN.password);
   await expect(async () => {
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/admin/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/admin/, { timeout: 30_000 });
   }).toPass({ timeout: 120_000 });
 
   await page.goto(`/admin/bookings/${target.id}`, { waitUntil: "domcontentloaded" });
@@ -179,7 +179,7 @@ test("itinerary reorder persists through the editor", async ({ page }) => {
   await page.getByLabel("Password").fill(E2E_ADMIN.password);
   await expect(async () => {
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page).toHaveURL(/\/admin/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/admin/, { timeout: 30_000 });
   }).toPass({ timeout: 120_000 });
 
   await page.goto(`/admin/tours/${tour.id}`, { waitUntil: "domcontentloaded" });

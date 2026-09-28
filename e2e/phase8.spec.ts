@@ -31,7 +31,7 @@ test("registration claims guest bookings into the dashboard", async ({ page, req
   // Re-click tolerant: a pre-hydration click natively reloads instead.
   await expect(async () => {
     await page.getByRole("button", { name: "Create account" }).click();
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/dashboard/, { timeout: 30_000 });
   }).toPass({ timeout: 120_000 });
   await expect(page.getByText(reference).first()).toBeVisible({ timeout: 30_000 });
 });

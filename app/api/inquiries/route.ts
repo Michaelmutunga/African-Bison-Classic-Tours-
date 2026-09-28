@@ -2,9 +2,16 @@ import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { inquiryReference, inquirySchema } from "@/lib/inquiries";
 import { prisma } from "@/lib/prisma";
+import { clientIp, throttled } from "@/lib/ratelimit";
 import { notify } from "@/server/notifications/dispatch";
 
 export async function POST(request: Request) {
+  if (throttled(`inquiries:${clientIp(request)}`, 10, 60 * 60 * 1000)) {
+    return NextResponse.json(
+      { code: "rate_limited", message: "Too many enquiries. Please try again later." },
+      { status: 429 },
+    );
+  }
   let payload: unknown;
   try {
     payload = await request.json();

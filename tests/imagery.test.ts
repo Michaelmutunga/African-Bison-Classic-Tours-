@@ -35,9 +35,15 @@ describe("imagery manifest", () => {
   it("keeps helpers null-safe for unknown slugs and slots", () => {
     expect(imageById("no-such-image")).toBeNull();
     expect(imageForSlot("no-such-slot")).toBeNull();
-    expect(imageForTour("no-such-tour", "kenya")).toBeNull();
+    expect(imageForTour("no-such-tour", "no-such-category")).toBeNull();
     expect(imageForDestination("no-such-place")).toBeNull();
     expect(imageForPost("no-such-post")).toBeNull();
+  });
+
+  it("falls back to the category image for unmapped tours", () => {
+    const kenya = imageForTour("no-such-tour", "kenya");
+    expect(kenya).not.toBeNull();
+    expect(kenya?.slots).toContain("tours/category/kenya");
   });
 
   it("plans one file per attached photo with honest alt text", () => {

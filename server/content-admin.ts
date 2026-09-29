@@ -1,6 +1,7 @@
 import type { PublishStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { cachedPublic } from "@/lib/public-cache";
 import { ForbiddenError, UnauthorizedError, hasPermission } from "@/lib/permissions";
 import { ConflictError, NotFoundError, slugify, type Actor } from "@/server/catalogue";
 import { recordAudit } from "@/server/operations";
@@ -150,16 +151,63 @@ export async function listPosts(actor: Actor | null, status?: PublishStatus) {
   });
 }
 
+let lastDuePublishAt = 0;
+const DUE_PUBLISH_INTERVAL_MS = 60_000;
+
+async function maybePublishDuePosts(now: Date = new Date()): Promise<void> {
+  // Flipping due scheduled posts involves a read + a write. Running it on
+  // every public page render added hundreds of ms to each request, so it is
+  // throttled to at most once per minute per server instance. Tests always
+  // run it for determinism; direct publishDuePosts() calls are unaffected.
+  if (process.env.NODE_ENV !== "test") {
+    if (now.getTime() - lastDuePublishAt < DUE_PUBLISH_INTERVAL_MS) return;
+    lastDuePublishAt = now.getTime();
+  }
+  await publishDuePosts(now).catch(() => undefined);
+}
+
 export async function publicPosts() {
-  await publishDuePosts().catch(() => undefined);
+  await maybePublishDuePosts();
   return prisma.blogPost.findMany({
     where: { status: "PUBLISHED" },
     orderBy: { publishedAt: "desc" },
   });
 }
 
+export interface PublicPostSummary {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  publishedAt: Date | null;
+  updatedAt: Date;
+}
+
+/**
+ * Lightweight card/related-post read. Listing pages only render slug, title,
+ * excerpt and date — fetching full paragraphs (up to ~480KB per post across
+ * dozens of posts) on every render was a major slowdown.
+ */
+export async function publicPostSummaries(): Promise<PublicPostSummary[]> {
+  await maybePublishDuePosts();
+  return cachedPublic("published-post-summaries", () =>
+    prisma.blogPost.findMany({
+      where: { status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        excerpt: true,
+        publishedAt: true,
+        updatedAt: true,
+      },
+    }),
+  );
+}
+
 export async function publicPostBySlug(slug: string) {
-  await publishDuePosts().catch(() => undefined);
+  await maybePublishDuePosts();
   const post = await prisma.blogPost.findUnique({ where: { slug } });
   if (!post || post.status !== "PUBLISHED") throw new NotFoundError("Post");
   return post;

@@ -4,24 +4,29 @@ import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Container, SectionHeading } from "@/components/ui/layout";
 import {
-  publicCategories,
+  deriveCategories,
+  getPublishedTours,
   publicDestinations,
-  publicTourCount,
-  publicTours,
+  summarizeTours,
 } from "@/lib/catalog";
-import { publicPosts } from "@/server/content-admin";
+import { publicPostSummaries } from "@/server/content-admin";
 import { experiences } from "@/lib/content";
 
 // Public catalogue reads need the database at request time.
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [categories, destinations, tourCount, allPosts] = await Promise.all([
-    publicCategories(),
+  // One tour-table scan per request: categories, counts and per-category
+  // slices are derived in memory. Post cards use the lightweight summary
+  // read (no full article bodies).
+  const [tours, destinations, allPosts] = await Promise.all([
+    getPublishedTours(),
     publicDestinations(),
-    publicTourCount(),
-    publicPosts(),
+    publicPostSummaries(),
   ]);
+  const categories = deriveCategories(tours);
+  const tourCount = tours.length;
+  const toursByCategory = new Map(categories.map((c) => [c.slug, summarizeTours(tours, c.slug).slice(0, 3)]));
   const latestPosts = allPosts.slice(0, 3);
   const featuredDestinations = destinations.slice(0, 8);
 
@@ -60,9 +65,8 @@ export default async function HomePage() {
           lede="Every journey below is a real itinerary we operate — open one to see each day, what is included, and what is not."
         />
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {await Promise.all(
-            categories.map(async (category) => {
-              const list = (await publicTours(category.slug)).slice(0, 3);
+          {categories.map((category) => {
+              const list = toursByCategory.get(category.slug) ?? [];
               return (
                 <section key={category.slug} aria-label={category.label}>
                   <div className="flex items-baseline justify-between gap-4 border-b border-ink/15 pb-2">
@@ -92,8 +96,8 @@ export default async function HomePage() {
                   </ul>
                 </section>
               );
-            }),
-          )}
+            })}
+
         </div>
         <p className="type-small mt-6 text-ink/70">
           {tourCount} published itineraries. Pricing is quoted per trip —{" "}

@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/layout";
 import { NotFoundError } from "@/server/catalogue";
 import {
+  getPublishedTours,
   publicDestination,
-  publicDestinationHighlights,
   publicDestinations,
-  publicToursForDestination,
+  toursForDestinationName,
 } from "@/lib/catalog";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
@@ -51,17 +51,18 @@ export default async function DestinationDetailPage({
 }) {
   const { slug } = await params;
   let destination;
-  let highlights: string[];
+  let relatedTours: ReturnType<typeof toursForDestinationName>;
   try {
-    [destination, highlights] = await Promise.all([
-      publicDestination(slug),
-      publicDestinationHighlights(slug),
-    ]);
+    // One destination row read + one tour-table scan in parallel; highlights
+    // come from the same destination row instead of a second identical query.
+    const [found, tours] = await Promise.all([publicDestination(slug), getPublishedTours()]);
+    destination = found;
+    relatedTours = toursForDestinationName(tours, destination.name);
   } catch (error) {
     if (error instanceof NotFoundError) notFound();
     throw error;
   }
-  const relatedTours = await publicToursForDestination(destination.name);
+  const highlights: string[] = destination.highlights;
   const crumbs = [
     { label: "Home", href: "/" },
     { label: "Destinations", href: "/destinations" },

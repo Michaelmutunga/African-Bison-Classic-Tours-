@@ -6,7 +6,7 @@ import { PostCard } from "@/components/cards";
 import { JsonLd, breadcrumbJsonLd } from "@/components/json-ld";
 import { Container } from "@/components/ui/layout";
 import { formatDate } from "@/lib/content";
-import { publicPostBySlug, publicPosts } from "@/server/content-admin";
+import { publicPostBySlug, publicPostSummaries } from "@/server/content-admin";
 import { NotFoundError } from "@/server/catalogue";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export async function generateStaticParams() {
   try {
-    return (await publicPosts()).map((post) => ({ slug: post.slug }));
+    return (await publicPostSummaries()).map((post) => ({ slug: post.slug }));
   } catch {
     return [];
   }
@@ -56,7 +56,7 @@ export default async function BlogDetailPage({
     throw error;
   }
   const date = formatDate(post.publishedAt?.toISOString() ?? null);
-  const related = (await publicPosts()).filter((p) => p.slug !== post.slug).slice(0, 3);
+  const related = (await publicPostSummaries()).filter((p) => p.slug !== post.slug).slice(0, 3);
   const crumbs = [
     { label: "Home", href: "/" },
     { label: "Journal", href: "/blog" },

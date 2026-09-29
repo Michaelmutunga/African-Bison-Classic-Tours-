@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PostCard } from "@/components/cards";
 import { MarketingShell } from "@/components/marketing-shell";
-import { publicPosts } from "@/server/content-admin";
+import { publicPostSummaries } from "@/server/content-admin";
 
 export const metadata: Metadata = {
   title: "Journal",
@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function BlogPage() {
-  const posts = await publicPosts();
+  const posts = await publicPostSummaries();
   return (
     <MarketingShell
       eyebrow="Journal"

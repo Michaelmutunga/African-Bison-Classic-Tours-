@@ -3,7 +3,7 @@ import Link from "next/link";
 import { TourCard } from "@/components/cards";
 import { MarketingShell } from "@/components/marketing-shell";
 import { Badge } from "@/components/ui/badge";
-import { publicCategories, publicTours } from "@/lib/catalog";
+import { deriveCategories, getPublishedTours, summarizeTours } from "@/lib/catalog";
 
 export const metadata: Metadata = {
   title: "Safari tours",
@@ -19,10 +19,12 @@ export default async function ToursPage({
   searchParams: Promise<{ category?: string }>;
 }) {
   const { category } = await searchParams;
-  const categories = await publicCategories();
+  // Single tour-table scan; filter in memory.
+  const tours = await getPublishedTours();
+  const categories = deriveCategories(tours);
   const active = categories.some((c) => c.slug === category) ? (category as string) : "all";
-  const shown = await publicTours(active === "all" ? undefined : active);
-  const total = categories.reduce((sum, c) => sum + c.count, 0);
+  const shown = summarizeTours(tours, active === "all" ? undefined : active);
+  const total = tours.length;
   const activeLabel = categories.find((c) => c.slug === active)?.label;
 
   return (

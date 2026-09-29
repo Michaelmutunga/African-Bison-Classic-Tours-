@@ -1,4 +1,5 @@
 import { getDestinationBySlug, getTourBySlug, listDestinations, listTours } from "@/server/catalogue";
+import { cachedPublic } from "@/lib/public-cache";
 
 /**
  * Public catalogue reads (Phase 3). Always published-only: drafts never leak.
@@ -45,8 +46,20 @@ function toSummary(tour: {
   };
 }
 
-export async function publicCategories(): Promise<PublicCategory[]> {
-  const tours = await listTours({ publishedOnly: true });
+export type PublishedTourRow = Awaited<ReturnType<typeof listTours>>[number];
+
+/**
+ * The single published-tour fetch. Pages must call this ONCE per request and
+ * derive categories, counts and filtered lists with the pure helpers below.
+ * Calling publicCategories() + publicTourCount() + publicTours() per category
+ * issued one full table scan per call (~65-150ms each, ~1.6s combined on the
+ * homepage) — that N+1 pattern was the main page-load bottleneck.
+ */
+export async function getPublishedTours(): Promise<PublishedTourRow[]> {
+  return cachedPublic("published-tours", () => listTours({ publishedOnly: true }));
+}
+
+export function deriveCategories(tours: PublishedTourRow[]): PublicCategory[] {
   const map = new Map<string, PublicCategory>();
   for (const tour of tours) {
     const entry = map.get(tour.category.slug) ?? {
@@ -60,12 +73,39 @@ export async function publicCategories(): Promise<PublicCategory[]> {
   return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
 
-export async function publicTours(categorySlug?: string): Promise<PublicTourSummary[]> {
-  const tours = await listTours({ publishedOnly: true });
+export function summarizeTours(
+  tours: PublishedTourRow[],
+  categorySlug?: string,
+): PublicTourSummary[] {
   return tours
     .filter((tour) => !categorySlug || tour.category.slug === categorySlug)
     .map(toSummary)
     .sort((a, b) => a.durationDays - b.durationDays || a.title.localeCompare(b.title));
+}
+
+export function toursForDestinationName(
+  tours: PublishedTourRow[],
+  destinationName: string,
+): PublicTourSummary[] {
+  const token =
+    destinationName
+      .replace(/^(Mount|Lake)\s+/i, "")
+      .split(/[\s-]+/)[0]
+      ?.toLowerCase() ?? "";
+  if (!token || token.length < 4) return [];
+  const variants = token === "maasai" ? ["maasai", "masai"] : [token];
+  return tours
+    .filter((tour) => variants.some((v) => tour.title.toLowerCase().includes(v)))
+    .slice(0, 6)
+    .map(toSummary);
+}
+
+export async function publicCategories(): Promise<PublicCategory[]> {
+  return deriveCategories(await getPublishedTours());
+}
+
+export async function publicTours(categorySlug?: string): Promise<PublicTourSummary[]> {
+  return summarizeTours(await getPublishedTours(), categorySlug);
 }
 
 export async function publicTour(slug: string) {
@@ -73,12 +113,12 @@ export async function publicTour(slug: string) {
 }
 
 export async function publicTourCount(): Promise<number> {
-  const tours = await listTours({ publishedOnly: true });
+  const tours = await getPublishedTours();
   return tours.length;
 }
 
 export async function publicDestinations(): Promise<PublicDestinationSummary[]> {
-  const destinations = await listDestinations(true);
+  const destinations = await cachedPublic("published-destinations", () => listDestinations(true));
   return destinations.map((d) => ({
     slug: d.slug,
     name: d.name,
@@ -99,16 +139,5 @@ export async function publicDestinationHighlights(slug: string): Promise<string[
 export async function publicToursForDestination(
   destinationName: string,
 ): Promise<PublicTourSummary[]> {
-  const token =
-    destinationName
-      .replace(/^(Mount|Lake)\s+/i, "")
-      .split(/[\s-]+/)[0]
-      ?.toLowerCase() ?? "";
-  if (!token || token.length < 4) return [];
-  const variants = token === "maasai" ? ["maasai", "masai"] : [token];
-  const tours = await listTours({ publishedOnly: true });
-  return tours
-    .filter((tour) => variants.some((v) => tour.title.toLowerCase().includes(v)))
-    .slice(0, 6)
-    .map(toSummary);
+  return toursForDestinationName(await getPublishedTours(), destinationName);
 }

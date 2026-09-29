@@ -10,3 +10,6 @@ playwright-report
 tsconfig.tsbuildinfo
 *.log
 .DS_Store
+# Unprocessed originals (huge files, EXIF intact) are never committed.
+/incoming/*
+!/incoming/.gitkeep

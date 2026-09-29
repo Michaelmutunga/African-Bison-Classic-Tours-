@@ -4540,6 +4540,52 @@ Start with PHASE 0.
 Inspect the repository and live website first.
 Then implement the system phase by phase.
 
+======================================================================
+DESIGN REVAMP ADDENDUM (cinematic front-end revamp, supersedes conflicting design notes)
+======================================================================
+
+This addendum has precedence over AGENTS.md sections 15 to 19 and 25,
+over the header comment in app/globals.css, and over any design note in
+docs/ that conflicts with it. Everything else in AGENTS.md still
+applies: no invented business facts, prices, guarantees or reviews;
+never promise wildlife sightings; security, accessibility, SEO, testing
+and no-secrets rules; strong typing with no `any`.
+
+1. Scrim gradients are allowed on top of photography and video so text
+   stays readable. Nothing else gets decorative gradients.
+   Glassmorphism stays out.
+2. "Do not animate everything" is replaced by the defined motion system
+   in components/motion/ (Reveal, RevealText, ScrollWords, Parallax,
+   DrawPath, ScrollProgress, WelcomeIntro, PageIntro, SmoothScroll with
+   Lenis). Motion is purposeful, respects prefers-reduced-motion in JS
+   as well as CSS, and falls back to still imagery on saveData or 2g/3g.
+3. The homepage structure in section 16 is replaced by the ten-section
+   cinematic order: hero, statement, signature journeys, migration
+   scene, route line, destinations, Nairobi in a day, trust strip,
+   journal, closing.
+4. The hero concept is replaced by a full-bleed video hero (HeroMedia):
+   self-hosted public/video/hero.mp4 (plus optional hero.webm and
+   hero-poster.jpg) under the existing media-src 'self' CSP. Until the
+   video file exists the hero uses a still image with a slow Ken Burns
+   zoom and upgrades automatically with no code change.
+5. "Max two font families" still holds: Fraunces (display, with the
+   optical size axis) and Inter (body). New type tokens: type-mega and
+   type-eyebrow. Sharp editorial corners stay; no rounded shadow-heavy
+   SaaS cards.
+6. New depth tokens only: night (near #0e0d0b), bark-deep (near
+   #3a2a1c), and --scrim for media overlays. Sections alternate between
+   ivory, sand, earth-deep, bark-deep and night.
+7. New copy voice: human, specific, warm, East African. No filler, no
+   generic travel-brochure phrases, no em dashes in new copy.
+8. Imagery maps by slug in lib/imagery.ts because the Prisma schema has
+   no image fields (schema unchanged in this revamp). Only attached
+   client images are used. No hotlinking, no stock fetches, no new
+   remote hosts. Generic images never imply a specific park.
+9. Work happens on branch redesign/cinematic-ui (overrides "push to
+   main" for this task because Railway deploys from main). Phases R1 to
+   R5 each end with lint, typecheck, unit tests, targeted e2e,
+   production build, commit and push of the branch.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

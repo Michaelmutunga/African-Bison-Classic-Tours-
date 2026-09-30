@@ -1,4 +1,8 @@
-import type { PublicDestinationSummary } from "@/lib/catalog";
+import type {
+  PublicDestinationSummary,
+  PublishedTourRow,
+} from "@/lib/catalog";
+import { countToursForDestinationName } from "@/lib/catalog";
 import { imageForDestination } from "@/lib/imagery";
 
 /**
@@ -69,4 +73,19 @@ export function destinationsWithoutWallImage(
   destinations: PublicDestinationSummary[],
 ): PublicDestinationSummary[] {
   return destinations.filter((d) => !imageForDestination(d.slug));
+}
+
+/**
+ * Safari counts per destination slug for the ledger index. Counts every
+ * published-tour match (no display cap) so the copy stays honest.
+ */
+export function buildDestinationSafariCounts(
+  tours: PublishedTourRow[],
+  destinations: PublicDestinationSummary[],
+): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const destination of destinations) {
+    counts[destination.slug] = countToursForDestinationName(tours, destination.name);
+  }
+  return counts;
 }

@@ -84,19 +84,43 @@ export function summarizeTours(
     .sort((a, b) => a.durationDays - b.durationDays || a.title.localeCompare(b.title));
 }
 
-export function toursForDestinationName(
-  tours: PublishedTourRow[],
-  destinationName: string,
-): PublicTourSummary[] {
+function destinationTokenVariants(destinationName: string): string[] {
   const token =
     destinationName
       .replace(/^(Mount|Lake)\s+/i, "")
       .split(/[\s-]+/)[0]
       ?.toLowerCase() ?? "";
   if (!token || token.length < 4) return [];
-  const variants = token === "maasai" ? ["maasai", "masai"] : [token];
+  return token === "maasai" ? ["maasai", "masai"] : [token];
+}
+
+function matchesDestination(tourTitle: string, variants: string[]): boolean {
+  const lower = tourTitle.toLowerCase();
+  return variants.some((v) => lower.includes(v));
+}
+
+/**
+ * Full count of published tours visiting a destination. Unlike
+ * toursForDestinationName (capped at 6 for display), this counts every
+ * match so index copy like "9 safaris" stays honest.
+ */
+export function countToursForDestinationName(
+  tours: PublishedTourRow[],
+  destinationName: string,
+): number {
+  const variants = destinationTokenVariants(destinationName);
+  if (variants.length === 0) return 0;
+  return tours.filter((tour) => matchesDestination(tour.title, variants)).length;
+}
+
+export function toursForDestinationName(
+  tours: PublishedTourRow[],
+  destinationName: string,
+): PublicTourSummary[] {
+  const variants = destinationTokenVariants(destinationName);
+  if (variants.length === 0) return [];
   return tours
-    .filter((tour) => variants.some((v) => tour.title.toLowerCase().includes(v)))
+    .filter((tour) => matchesDestination(tour.title, variants))
     .slice(0, 6)
     .map(toSummary);
 }

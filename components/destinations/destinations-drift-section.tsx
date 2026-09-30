@@ -4,12 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { DriftWall } from "@/components/destinations/drift-wall";
+import { DestinationLedgerRow } from "@/components/destinations/destination-ledger-row";
 import { useCalmExperience, useMounted } from "@/components/motion/use-calm";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/layout";
 import { cn } from "@/lib/cn";
 import type { PublicDestinationSummary } from "@/lib/catalog";
 import type { DriftWallItem } from "@/lib/destinations-wall";
+import { imageForDestination } from "@/lib/imagery";
 
 type Region = "all" | "Kenya" | "Tanzania";
 
@@ -28,9 +30,11 @@ const REGIONS: Array<{ value: Region; label: string }> = [
 export function DestinationsDriftSection({
   items,
   destinations,
+  safariCounts,
 }: {
   items: DriftWallItem[];
   destinations: PublicDestinationSummary[];
+  safariCounts: Record<string, number>;
 }) {
   const calm = useCalmExperience();
   const mounted = useMounted();
@@ -158,39 +162,21 @@ export function DestinationsDriftSection({
       <section aria-label="Destination index" className="bg-ivory">
         <Container className="py-14 sm:py-20">
           <p className="type-eyebrow text-clay-deep">Index</p>
-          <h2 className="type-h2 mt-3">The full list</h2>
+          <h2 className="type-h2 mt-3">The ledger</h2>
+          <p className="type-body mt-4 text-ink/70">
+            Every park, lake, mountain and the city, with the safaris that
+            visit each. Open any line for its itineraries.
+          </p>
           <ol aria-label="Destination index" className="mt-8">
             {filteredDestinations.map((destination, index) => (
-              <li
+              <DestinationLedgerRow
                 key={destination.slug}
-                className="grid gap-2 border-t border-sand py-6 last:border-b sm:grid-cols-[4rem_1fr] sm:gap-6"
-              >
-                <span
-                  aria-hidden="true"
-                  className="type-numeric text-sm font-semibold text-clay-deep"
-                >
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <p className="type-label text-clay-deep">{destination.country}</p>
-                  <h3 className="type-h3 mt-1">
-                    <Link
-                      href={`/destinations/${destination.slug}`}
-                      className="hover:text-clay-deep"
-                    >
-                      {destination.name}
-                    </Link>
-                  </h3>
-                  <p className="type-small mt-2 max-w-3xl text-ink/70">
-                    {destination.excerpt}
-                  </p>
-                  {destination.highlights.length > 0 ? (
-                    <p className="type-caption mt-2 text-ink/60">
-                      {destination.highlights.slice(0, 4).join(" · ")}
-                    </p>
-                  ) : null}
-                </div>
-              </li>
+                destination={destination}
+                position={index + 1}
+                photo={imageForDestination(destination.slug)}
+                safariCount={safariCounts[destination.slug] ?? 0}
+                calm={calm}
+              />
             ))}
           </ol>
           <div className="mt-10 flex flex-wrap gap-3">

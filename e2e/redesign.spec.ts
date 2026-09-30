@@ -28,22 +28,31 @@ test.describe("cinematic homepage", () => {
     expect(internal.length).toBeGreaterThan(10);
   });
 
-  test("descent chapters advance on scroll and inactive chapters are inert", async ({ page }) => {
+  test("hero reveals the headline with magnetic CTAs and a spinning badge", async ({ page }) => {
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await waitForHydration(page);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 60_000 });
     const stage = page.locator("#descent");
     await expect(stage).toBeVisible();
-    // Scroll deep into the pinned scene; chapter 4 content appears.
-    await stage.scrollIntoViewIfNeeded();
-    await page.evaluate(() => {
-      const el = document.querySelector("#descent");
-      if (el) window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY + el.clientHeight * 0.9);
-    });
-    await expect(page.getByText("WILD, ON ITS", { exact: false }).first()).toBeVisible({ timeout: 30_000 });
-    // Chapter 1 goes inert once we leave it, so its CTAs leave the tab order.
-    await expect(page.locator('[aria-label="Chapter 1"]')).toHaveAttribute("inert", "");
-    await expect(page.locator('[aria-label="Chapter 4"]')).not.toHaveAttribute("inert", "");
+    // Diagonal headline reveal carries the full sentence for screen readers.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveAttribute(
+      "aria-label",
+      "East African safaris, designed around you.",
+    );
+    // Both magnetic CTAs are real links in the tab order.
+    await expect(page.getByRole("link", { name: "Design your safari" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Explore safaris" }).first()).toBeVisible();
+    // Spinning badge links down to the journeys on desktop viewports.
+    await expect(page.getByRole("link", { name: "Scroll to signature journeys" })).toBeVisible();
+    // Every signature journey carries its own image: one distinct photo
+    // per article (pixel-reveal cards render a low-res layer with the
+    // same src, so uniqueness is measured across articles, not img tags).
+    const journeyCount = await page.locator("#journeys article").count();
+    expect(journeyCount).toBeGreaterThan(0);
+    const journeyImages = await page.$$eval("#journeys article img", (imgs) =>
+      imgs.map((img) => img.getAttribute("src")),
+    );
+    expect(new Set(journeyImages).size).toBe(journeyCount);
   });
 
   test("hero has no video; migration scene has a pausable video", async ({ page }) => {
@@ -102,15 +111,15 @@ test.describe("cinematic homepage", () => {
 test.describe("reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 
-  test("shows the static hero stack with all CTAs and no preloader", async ({ page }) => {
+  test("shows the still hero composition with all CTAs and no preloader", async ({ page }) => {
     test.setTimeout(300_000);
     await page.goto("/", { waitUntil: "domcontentloaded" });
     await waitForHydration(page);
     const h1 = page.getByRole("heading", { level: 1 });
     await expect(h1).toBeVisible({ timeout: 60_000 });
     await expect(h1).toHaveCount(1);
-    // Static stack: no pinned stage, still image, both hero CTAs present.
-    await expect(page.locator("#descent")).toHaveCount(0, { timeout: 30_000 });
+    // Still composition: same hero frame, both CTAs present, no video.
+    await expect(page.locator("#descent")).toBeVisible();
     await expect(page.getByRole("link", { name: "Design your safari" }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: "Explore safaris" }).first()).toBeVisible();
     await expect(page.locator("#descent video")).toHaveCount(0);

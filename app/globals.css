@@ -211,3 +211,20 @@ html.lenis-active body {
   border: 0;
   border-top: 1px solid var(--color-sand);
 }
+
+/* Slow rotation for the spinning badge (stilled by the reduced-motion
+   rule above). */
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin-slow {
+  animation: spin-slow 22s linear infinite;
+  transform-origin: center;
+}
+
+/* Upscaled low-res layer for the pixel-image reveal. */
+.pixelated {
+  image-rendering: pixelated;
+}

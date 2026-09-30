@@ -2,9 +2,12 @@ import Link from "next/link";
 import { DescentHero } from "@/components/motion/descent-hero";
 import { DrawPath } from "@/components/motion/draw-path";
 import { Parallax } from "@/components/motion/parallax";
+import { PixelImage } from "@/components/motion/pixel-image";
 import { Reveal } from "@/components/motion/reveal";
 import { ScrollProgress } from "@/components/motion/scroll-progress";
 import { ScrollWords } from "@/components/motion/scroll-words";
+import { SmoothCursor } from "@/components/motion/smooth-cursor";
+import { VelocityMarquee } from "@/components/motion/velocity-marquee";
 import { WelcomeIntro } from "@/components/motion/welcome-intro";
 import { MigrationScene } from "@/components/migration-scene";
 import { SafariImage } from "@/components/safari-image";
@@ -19,7 +22,7 @@ import {
 } from "@/lib/catalog";
 import { publicPostSummaries } from "@/server/content-admin";
 import { experiences } from "@/lib/content";
-import { imageForDestination, imageForSlot, imageForTour, imagesForSlot } from "@/lib/imagery";
+import { imageForDestination, imageForSlot, imageForTourUnique, imagesForSlot } from "@/lib/imagery";
 import { SITE_CONTACT } from "@/lib/site-contact";
 
 // Public catalogue reads need the database at request time.
@@ -57,24 +60,36 @@ export default async function HomePage() {
   const featuredDestinations = destinations.slice(0, 8);
   const journalPool = imagesForSlot("journal.generic");
 
-  const sky = heroImage("hero.sky", "hero.primary");
-  const sunset = heroImage("hero.sunset", "statement.break");
-  const savannah = heroImage("hero.savannah", "migration.scene");
-  const wildlife = heroImage("hero.wildlife", "destinations/masai-mara");
-  const migrationPoster = heroImage("migration.scene", "hero.savannah");
+  const heroPrimary = heroImage("hero.primary", "hero.sky");
+  const heroMobile = heroImage("hero.primary-mobile", "hero.primary");
+  const migrationPoster = heroImage("migration.scene", "hero.primary");
+  // One image per journey across the whole section: the used-set keeps
+  // the featured card and every grid card on a distinct photograph.
+  const usedJourneyImages = new Set<string>();
   const featured = categories.length > 0 ? (toursByCategory.get(categories[0].slug) ?? [])[0] : undefined;
-  const featuredImage = featured ? imageForTour(featured.slug, featured.categorySlug) : null;
+  const featuredImage = featured
+    ? imageForTourUnique(featured.slug, featured.categorySlug, usedJourneyImages)
+    : null;
 
   return (
     <>
       <ScrollProgress />
+      <SmoothCursor />
       <WelcomeIntro />
-      <DescentHero
-        sky={sky}
-        sunset={sunset}
-        savannah={savannah}
-        wildlife={wildlife}
-        destinationsCount={destinations.length}
+      <DescentHero image={heroPrimary} mobileImage={heroMobile} />
+      <VelocityMarquee
+        label="Safari regions: Nairobi, Amboseli, Lake Naivasha, Lake Nakuru, Masai Mara, Serengeti and Ngorongoro"
+        items={[
+          "Nairobi",
+          "Amboseli",
+          "Lake Naivasha",
+          "Lake Nakuru",
+          "Masai Mara",
+          "Serengeti",
+          "Ngorongoro",
+          "Tarangire",
+          "Lake Manyara",
+        ]}
       />
 
       <section aria-label="How we plan" className="bg-ivory">
@@ -96,7 +111,7 @@ export default async function HomePage() {
           {featured ? (
             <Reveal className="mt-8">
               <article className="grid overflow-hidden bg-night text-ivory md:grid-cols-2">
-                <SafariImage
+                <PixelImage
                   seed={featured.slug}
                   label={featured.title}
                   alt={featuredImage?.alt ?? `${featured.title} — photo pending`}
@@ -126,52 +141,66 @@ export default async function HomePage() {
               </article>
             </Reveal>
           ) : null}
-          <div className="mt-10 grid gap-8 md:grid-cols-2">
-            {categories.map((category) => {
-              const list = toursByCategory.get(category.slug) ?? [];
-              return (
-                <section key={category.slug} aria-label={category.label}>
-                  <div className="flex items-baseline justify-between gap-4 border-b border-ink/15 pb-2">
-                    <h3 className="type-h3">{category.label}</h3>
-                    <Link
-                      href={`/tours?category=${category.slug}`}
-                      className="type-small whitespace-nowrap underline underline-offset-4 hover:text-clay-deep"
-                    >
-                      All {category.count} →
-                    </Link>
-                  </div>
-                  <div className="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
-                    {list.map((tour) => {
-                      const image = imageForTour(tour.slug, tour.categorySlug);
-                      return (
-                        <article key={tour.slug} className="w-56 shrink-0 snap-start border border-ink/10 bg-ivory">
-                          <SafariImage
-                            seed={tour.slug}
-                            label={tour.title}
-                            alt={image?.alt ?? `${tour.title} — photo pending`}
-                            src={image?.src}
-                            focal={image?.focal}
-                            ratio="aspect-[4/3]"
-                            sizes="224px"
-                          />
-                          <div className="p-4">
-                            <p className="type-caption text-ink/60">
-                              {tour.durationDays} day{tour.durationDays === 1 ? "" : "s"} · {tour.categoryLabel}
-                            </p>
-                            <h4 className="type-small mt-1 font-semibold">
-                              <Link href={`/tours/${tour.slug}`} className="hover:text-clay-deep">
-                                {tour.title}
-                              </Link>
-                            </h4>
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })}
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {categories.flatMap((category) =>
+              (toursByCategory.get(category.slug) ?? []).map((tour) => {
+                const image = imageForTourUnique(tour.slug, tour.categorySlug, usedJourneyImages);
+                return (
+                  <Reveal key={tour.slug}>
+                    <article className="group flex h-full flex-col border border-ink/10 bg-ivory">
+                      <Link
+                        href={`/tours/${tour.slug}`}
+                        aria-label={`View itinerary: ${tour.title}`}
+                        className="block"
+                      >
+                        <PixelImage
+                          seed={tour.slug}
+                          label={tour.title}
+                          alt={image?.alt ?? `${tour.title} — photo pending`}
+                          src={image?.src}
+                          focal={image?.focal}
+                          ratio="aspect-[4/3]"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        />
+                      </Link>
+                      <div className="flex flex-1 flex-col p-5">
+                        <p className="type-label text-clay-deep">{tour.categoryLabel}</p>
+                        <h3 className="type-h3 mt-2 text-balance">
+                          <Link href={`/tours/${tour.slug}`} className="group-hover:text-clay-deep">
+                            {tour.title}
+                          </Link>
+                        </h3>
+                        <p className="type-caption mt-2 text-ink/60">
+                          {tour.durationDays} day{tour.durationDays === 1 ? "" : "s"} · Private & tailor-made
+                        </p>
+                        <p className="type-small mt-3 line-clamp-2 text-ink/70">{tour.excerpt}</p>
+                        <p className="mt-auto pt-4">
+                          <Link
+                            href={`/tours/${tour.slug}`}
+                            className="type-small font-semibold underline underline-offset-4 hover:text-clay-deep"
+                          >
+                            View itinerary →
+                          </Link>
+                        </p>
+                      </div>
+                    </article>
+                  </Reveal>
+                );
+              }),
+            )}
           </div>
+          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
+            {categories.map((category) => (
+              <li key={category.slug}>
+                <Link
+                  href={`/tours?category=${category.slug}`}
+                  className="type-small underline underline-offset-4 hover:text-clay-deep"
+                >
+                  All {category.count} {category.label} →
+                </Link>
+              </li>
+            ))}
+          </ul>
           <p className="type-small mt-6 text-ink/70">
             {tourCount} published itineraries. Pricing is quoted per trip —{" "}
             <Link href="/contact" className="underline underline-offset-4">

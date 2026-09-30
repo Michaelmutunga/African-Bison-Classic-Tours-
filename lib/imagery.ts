@@ -33,6 +33,33 @@ export interface ImageEntry {
 // GENERATED:BEGIN
 export const IMAGES: ImageEntry[] = [
   {
+    "id": "landing-savannah-sunset",
+    "src": "/images/hero/landing-savannah-sunset.jpg",
+    "alt": "Giraffes, zebras and wildebeest grazing on golden savannah beneath acacia trees at sunset",
+    "width": 1366,
+    "height": 768,
+    "focal": "50% 62%",
+    "orientation": "landscape",
+    "slots": [
+      "hero.primary",
+      "hero.sky"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "landing-savannah-sunset-mobile",
+    "src": "/images/hero/landing-savannah-sunset-mobile.jpg",
+    "alt": "Giraffes, zebras and wildebeest grazing on golden savannah beneath acacia trees at sunset",
+    "width": 768,
+    "height": 1024,
+    "focal": "50% 60%",
+    "orientation": "portrait",
+    "slots": [
+      "hero.primary-mobile"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
     "id": "balloon-basket-sunrise",
     "src": "/images/hero/balloon-basket-sunrise.jpg",
     "alt": "Hot air balloon basket carrying guests over wildebeest and zebra herds at sunrise",
@@ -41,8 +68,7 @@ export const IMAGES: ImageEntry[] = [
     "focal": "70% 25%",
     "orientation": "portrait",
     "slots": [
-      "hero.primary",
-      "hero.sky"
+      "hero.archive"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -109,7 +135,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 45%",
     "orientation": "portrait",
     "slots": [
-      "tours/category/kenya"
+      "tours/category/kenya",
+      "tours/category/kenya-tanzania"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -137,7 +164,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 55%",
     "orientation": "portrait",
     "slots": [
-      "tours/category/tanzania"
+      "tours/category/tanzania",
+      "tours/category/kenya-tanzania"
     ],
     "credit": "Cem Sural // TODO confirm licence"
   },
@@ -204,7 +232,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "portrait",
     "slots": [
-      "tours/category/tanzania"
+      "tours/category/tanzania",
+      "tours/category/kenya-tanzania"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -217,7 +246,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "portrait",
     "slots": [
-      "tours/category/tanzania"
+      "tours/category/tanzania",
+      "tours/category/kenya-tanzania"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -309,7 +339,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "portrait",
     "slots": [
-      "destinations/lake-manyara"
+      "destinations/lake-manyara",
+      "tours/category/kenya-tanzania"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -374,7 +405,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 45%",
     "orientation": "portrait",
     "slots": [
-      "destinations/ngorongoro"
+      "destinations/ngorongoro",
+      "tours/category/kenya-tanzania"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -387,7 +419,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "square",
     "slots": [
-      "destinations/tarangire"
+      "destinations/tarangire",
+      "tours/category/kenya-tanzania"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -478,7 +511,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "portrait",
     "slots": [
-      "experiences/giraffe-centre"
+      "experiences/giraffe-centre",
+      "tours/category/nairobi-day"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -530,7 +564,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "portrait",
     "slots": [
-      "experiences/sheldrick-elephant-orphanage"
+      "experiences/sheldrick-elephant-orphanage",
+      "tours/category/nairobi-day"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -570,7 +605,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "landscape",
     "slots": [
-      "experiences/bomas-of-kenya"
+      "experiences/bomas-of-kenya",
+      "tours/category/nairobi-day"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -622,7 +658,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "landscape",
     "slots": [
-      "experiences/carnivore-restaurant"
+      "experiences/carnivore-restaurant",
+      "tours/category/nairobi-day"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -830,7 +867,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 55%",
     "orientation": "portrait",
     "slots": [
-      "experiences/nairobi-national-park"
+      "experiences/nairobi-national-park",
+      "tours/category/nairobi-day"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -843,7 +881,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "portrait",
     "slots": [
-      "experiences/nairobi-national-park"
+      "experiences/nairobi-national-park",
+      "tours/category/nairobi-day"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -856,7 +895,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "landscape",
     "slots": [
-      "experiences/nairobi-national-park"
+      "experiences/nairobi-national-park",
+      "tours/category/nairobi-day"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -1290,14 +1330,74 @@ const destinationsBySlug: Record<string, string> = {
 const postsBySlug: Record<string, string> = {};
 void postsBySlug;
 
+function hashSlug(slug: string): number {
+  let hash = 0;
+  for (let i = 0; i < slug.length; i++) hash = (hash * 31 + slug.charCodeAt(i)) >>> 0;
+  return hash;
+}
+
 export function imageForTour(
   slug: string,
   category: string,
 ): ImageEntry | null {
+  // Exact per-tour slot wins when one exists.
+  const direct = imageForSlot(`tours/${slug}`);
+  if (direct) return direct;
+  // Otherwise spread tours deterministically across the category pool so
+  // every journey in a listing gets its own image instead of every card
+  // sharing the first category fallback.
   const categorySlot = toursByCategory[category];
-  return (
-    imageForSlot(`tours/${slug}`) ?? (categorySlot ? imageForSlot(categorySlot) : null)
-  );
+  if (!categorySlot) return null;
+  const pool = imagesForSlot(categorySlot);
+  if (pool.length === 0) return null;
+  return pool[hashSlug(slug) % pool.length];
+}
+
+/**
+ * Listing-safe tour image: like imageForTour, but skips images already
+ * handed out (the caller's `used` set) so every journey on a page gets
+ * its own image. Starts at the deterministic hash index inside the tour's
+ * own category pool, then spills to the other tour pools only when the
+ * home pool is exhausted, and finally repeats rather than returning null.
+ * The handed-out image id is recorded in `used`.
+ */
+const TOUR_POOL_ORDER = [
+  "tours/category/kenya",
+  "tours/category/tanzania",
+  "tours/category/kenya-tanzania",
+  "tours/category/nairobi-day",
+];
+
+export function imageForTourUnique(
+  slug: string,
+  category: string,
+  used: Set<string>,
+): ImageEntry | null {
+  const direct = imageForSlot(`tours/${slug}`);
+  if (direct && !used.has(direct.id)) {
+    used.add(direct.id);
+    return direct;
+  }
+  const categorySlot = toursByCategory[category];
+  const pools: ImageEntry[][] = [];
+  if (categorySlot) pools.push(imagesForSlot(categorySlot));
+  for (const slot of TOUR_POOL_ORDER) {
+    if (slot !== categorySlot) pools.push(imagesForSlot(slot));
+  }
+  for (const pool of pools) {
+    if (pool.length === 0) continue;
+    const start = hashSlug(slug) % pool.length;
+    for (let offset = 0; offset < pool.length; offset++) {
+      const candidate = pool[(start + offset) % pool.length];
+      if (!used.has(candidate.id)) {
+        used.add(candidate.id);
+        return candidate;
+      }
+    }
+  }
+  const fallback = imageForTour(slug, category);
+  if (fallback) used.add(fallback.id);
+  return fallback;
 }
 
 export function imageForDestination(slug: string): ImageEntry | null {
@@ -1325,7 +1425,8 @@ export interface PlannedImage {
 }
 
 export const SLOT_PLAN: PlannedImage[] = [
-  { file: "hero/balloon-basket-sunrise.jpg", slot: "hero.primary", alt: "Hot air balloon basket carrying guests over wildebeest and zebra herds at sunrise", note: "Still fallback until hero.mp4 is compressed" },
+  { file: "hero/landing-savannah-sunset.jpg", slot: "hero.primary", alt: "Giraffes, zebras and wildebeest grazing on golden savannah beneath acacia trees at sunset", note: "Client landing-page composite, cropped to landscape; mobile crop alongside" },
+  { file: "hero/balloon-basket-sunrise.jpg", slot: "hero.archive", alt: "Hot air balloon basket carrying guests over wildebeest and zebra herds at sunrise", note: "Superseded as hero by the landing-page composite" },
   { file: "hero/balloon-over-herds.jpg", slot: "closing.background", alt: "Hot air balloon drifting over a grazing wildebeest herd in golden grass" },
   { file: "hero/savanna-sunset-encounter.jpg", slot: "statement.break", alt: "Giraffes and zebras gathered beside a safari vehicle at sunset" },
   { file: "hero/migration-river-sunset.jpg", slot: "migration.scene", alt: "Wildebeest crossing a river at sunset, seen from above" },

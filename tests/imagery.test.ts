@@ -9,6 +9,8 @@ import {
   imageForPost,
   imageForSlot,
   imageForTour,
+  imageForTourUnique,
+  imagesForSlot,
 } from "@/lib/imagery";
 
 const ROOT = process.cwd();
@@ -44,6 +46,52 @@ describe("imagery manifest", () => {
     const kenya = imageForTour("no-such-tour", "kenya");
     expect(kenya).not.toBeNull();
     expect(kenya?.slots).toContain("tours/category/kenya");
+  });
+
+  it("uses the landing composite as the hero still with a mobile crop", () => {
+    expect(imageForSlot("hero.primary")?.id).toBe("landing-savannah-sunset");
+    expect(imageForSlot("hero.primary-mobile")?.id).toBe(
+      "landing-savannah-sunset-mobile",
+    );
+  });
+
+  it("spreads tours across the category pool instead of repeating one image", () => {
+    const pool = imagesForSlot("tours/category/kenya").map((image) => image.id);
+    expect(pool.length).toBeGreaterThan(3);
+    const slugs = [
+      "2-days-amboseli-national-park-safari",
+      "3-days-masai-mara-game-reserve-safari",
+      "4-days-great-masai-mara-migration-and-balloon-safari",
+      "5-days-amboseli-lake-naivasha-masai-mara-safari",
+      "6-days-amboseli-aberdares-lake-nakuru-masai-mara-safari",
+      "7-days-best-of-kenya-safari-tour",
+      "10-days-kenya-wildlife-adventure-safari",
+      "2-days-aberdare-national-park-safari",
+      "2-days-lake-nakuru-national-park-safari",
+      "3-days-amboseli-national-park-safari",
+    ];
+    const picks = slugs.map((slug) => imageForTour(slug, "kenya")?.id);
+    for (const pick of picks) expect(pool).toContain(pick);
+    // Every journey in a listing gets its own image.
+    expect(new Set(picks).size).toBeGreaterThan(1);
+  });
+
+  it("hands every journey its own image across a whole listing", () => {
+    const used = new Set<string>();
+    const listing: Array<[string, string]> = [
+      ["2-days-amboseli-national-park-safari", "kenya"],
+      ["3-days-masai-mara-game-reserve-safari", "kenya"],
+      ["7-days-best-of-kenya-safari-tour", "kenya"],
+      ["3-days-serengeti-national-park-safari", "tanzania"],
+      ["6-days-best-of-tanzania-adventure-safari", "tanzania"],
+      ["7-days-lake-manyara-serengeti-ngorongoro-tarangire-safari", "tanzania"],
+      ["7-days-lake-nakuru-masai-mara-serengeti-ngorongoro-crater-safari", "kenya-tanzania"],
+      ["10-days-kenya-tanzania-amazing-wildlife-safari", "kenya-tanzania"],
+      ["12-days-kenya-tanzania-wildlife-safari", "kenya-tanzania"],
+    ];
+    const picks = listing.map(([slug, category]) => imageForTourUnique(slug, category, used));
+    for (const pick of picks) expect(pick).not.toBeNull();
+    expect(new Set(picks.map((pick) => pick?.id)).size).toBe(listing.length);
   });
 
   it("plans one file per attached photo with honest alt text", () => {

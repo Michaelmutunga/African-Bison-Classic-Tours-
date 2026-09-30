@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { SiteBadge } from "@/components/site-badge";
+import { BrandOrbit } from "@/components/brand-orbit";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/layout";
 import { cn } from "@/lib/cn";
@@ -35,6 +35,7 @@ export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   // Close the menu on navigation (render-time adjustment, not an effect).
   if (pathname !== menuPath) {
@@ -52,11 +53,11 @@ export function SiteHeader() {
   }, []);
 
   useEffect(() => {
-    // The descent hero is dark for several viewports, so the header
-    // stays transparent with light text through it on the homepage.
+    // The homepage hero is a single dark frame, so the header stays
+    // transparent with light text through it until the hero scrolls off.
     const onScroll = () => {
       const limit =
-        pathname === "/" ? window.innerHeight * 3.8 : 24;
+        pathname === "/" ? window.innerHeight * 0.9 : 24;
       setScrolled(window.scrollY > limit);
     };
     onScroll();
@@ -77,6 +78,9 @@ export function SiteHeader() {
       if (typeof dialog.showModal === "function") dialog.showModal();
       else dialog.setAttribute("open", "");
       document.body.style.overflow = "hidden";
+      // The dialog brand is a link now, so initial focus is set
+      // explicitly on Close instead of relying on tab order.
+      closeRef.current?.focus();
     }
     if (!menuOpen && dialog.open) {
       if (typeof dialog.close === "function") dialog.close();
@@ -117,14 +121,8 @@ export function SiteHeader() {
             </p>
           </Container>
         </div>
-        <Container className="flex items-center justify-between gap-4 py-4">
-          <Link
-            href="/"
-            className="leading-none"
-            aria-label="African Bison Classic Tours — home"
-          >
-            <SiteBadge />
-          </Link>
+        <div className="flex items-center justify-between gap-4 py-2 pr-5 pl-5 sm:pr-8 sm:pl-8">
+          <BrandOrbit tone={transparent ? "text-ivory" : "text-ink"} />
           <nav aria-label="Primary" className="hidden items-center gap-7 md:flex">
             {NAV.map((item) => (
               <Link
@@ -161,7 +159,7 @@ export function SiteHeader() {
           >
             Menu
           </button>
-        </Container>
+        </div>
       </header>
 
       <dialog
@@ -171,11 +169,12 @@ export function SiteHeader() {
         onClose={() => setMenuOpen(false)}
         className="m-0 h-full max-h-none w-full max-w-none border-0 bg-night p-0 text-ivory open:flex open:flex-col"
       >
-        <Container className="flex items-center justify-between gap-4 py-4">
+        <Container className="flex items-center justify-between gap-4 py-2">
           <span className="leading-none" aria-hidden="true">
-            <SiteBadge />
+            <BrandOrbit tone="text-ivory" badgeClassName="h-16 w-16" logoSize={34} />
           </span>
           <button
+            ref={closeRef}
             type="button"
             className="type-label cursor-pointer border border-ivory/40 px-3.5 py-2 text-ivory"
             onClick={() => {

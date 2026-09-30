@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { BrandOrbit } from "@/components/brand-orbit";
 import { DiaReveal } from "@/components/motion/dia-reveal";
 import { HyperText } from "@/components/motion/hyper-text";
 import { MagneticCta } from "@/components/motion/magnetic-button";
@@ -95,5 +96,22 @@ describe("SpinningText", () => {
     expect(
       screen.getByRole("link", { name: "Scroll to signature journeys" }),
     ).toHaveAttribute("href", "#journeys");
+  });
+});
+
+describe("BrandOrbit", () => {
+  it("orbits the business name around a static logo", () => {
+    render(<BrandOrbit tone="text-ivory" />);
+    const link = screen.getByRole("link", {
+      name: "African Bison Classic Tours — home",
+    });
+    expect(link).toHaveAttribute("href", "/");
+    // Centre logo art is present and upright (no rotation class).
+    const logo = within(link).getByAltText("");
+    expect(logo.getAttribute("src") ?? "").toContain("logo-192");
+    // The orbiting ring is decorative: hidden svg, no extra names.
+    const ring = link.querySelector("svg");
+    expect(ring?.getAttribute("aria-hidden")).toBe("true");
+    expect(ring?.textContent ?? "").toContain("AFRICAN BISON CLASSIC TOURS");
   });
 });

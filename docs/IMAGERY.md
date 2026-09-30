@@ -78,7 +78,8 @@ and keep the intentional placeholder.
 | texture/night-dinner/stars.jpg | texture/* + journal.generic | African Bison // TODO confirm credit |
 | experiences/nairobi-museum-hall.jpg | nairobi-national-museum | African Bison // TODO confirm credit (clean, watermark-free) |
 | journal/guide-portrait.jpg | team/guide + journal.generic | African Bison // TODO confirm credit |
-| brand/logo.png | header badge + favicon source (unregistered) | Client artwork, alpha preserved |
+| brand/logo.png | original transparent artwork (unregistered) | Client artwork, alpha preserved |
+| brand/logo-192.png | header orbital badge + footer badge (192px, alpha preserved) | Resized from the transparent original, EXIF stripped |
 
 Alt text for every image lives in `lib/imagery.ts`.
 

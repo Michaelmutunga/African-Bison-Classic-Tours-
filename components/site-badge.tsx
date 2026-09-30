@@ -10,7 +10,7 @@ export function SiteBadge({ size = 40 }: { size?: number }) {
   return (
     <span className="inline-flex items-center gap-2.5 leading-none">
       <Image
-        src="/images/brand/logo.png"
+        src="/images/brand/logo-192.png"
         alt=""
         width={size}
         height={size}

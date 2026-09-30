@@ -1,15 +1,14 @@
 # Imagery (cinematic revamp)
 
-Source: 58 client-supplied files in `incoming/` (never committed).
-Processed: 56 photos to `public/images/` (max 1800px long edge, EXIF/GPS
-stripped, quality-82 JPEG, 8.9 MB total). No stock, no hotlinking, no
+Source: 82 client-supplied files in `incoming/` (never committed).
+Processed: 80 photos to `public/images/` (max 1800px long edge, EXIF/GPS
+stripped, quality-82 JPEG, 12.9 MB total). No stock, no hotlinking, no
 remote hosts. CSP keeps `media-src 'self'` unchanged.
 
 ## Drop points
 
-- Hero video: `public/video/hero.mp4` — RECEIVED at 18.4 MB. This is
-  over the 5 MB budget and will slow the hero on mobile connections.
-  Please compress and replace it:
+- Hero video: `public/video/hero.mp4` — RECEIVED at 9.2 MB, down from
+  18.4 MB. Still over the 5 MB budget; if you can squeeze once more:
   `ffmpeg -i in.mp4 -an -vf "scale=1280:-2,fps=24" -c:v libx264 -crf 28 -preset slow -movflags +faststart public/video/hero.mp4`
   Poster `public/images/hero/hero-poster.jpg` currently reuses the hero
   still; replace with a real video frame when compressing.
@@ -62,6 +61,16 @@ and keep the intentional placeholder.
 | journal/mara-bush-meal/bush-picnic/bush-breakfast-table/mara-sundowner.jpg | journal.generic | African Bison // TODO confirm credit |
 | journal/queen-elizabeth-shoreline/1/2.jpg | journal.generic | African Bison // TODO confirm credit (no Uganda product, journal only) |
 | journal/bwindi-trek/forest-1/2/3.jpg | journal.generic | African Bison // TODO confirm credit (journal only, never imply gorilla trekking tours) |
+| destinations/samburu-road-aerial.jpg | samburu | African Bison // TODO confirm credit |
+| journal/samburu-buffalo-springs/reserve-1/reserve-2.jpg | journal.generic | African Bison // TODO confirm credit |
+| experiences/nairobi-park-lion-vehicles/drive/wildlife.jpg | nairobi-national-park | African Bison // TODO confirm credit |
+| destinations/naivasha-boat-ride.jpg + naivasha-lake.jpg | lake-naivasha | African Bison // TODO confirm credit |
+| destinations/tsavo-east/west-elephants.jpg | tsavo-east, tsavo-west | African Bison // TODO confirm credit |
+| journal/tsavo-scene.jpg | journal.generic | African Bison // TODO confirm credit |
+| destinations/kilimanjaro-summit/uhuru-sign/mountain.jpg | kilimanjaro | African Bison // TODO confirm credit |
+| journal/zanzibar-salaam-turtles/stone-town/island.jpg | journal.generic | African Bison // TODO confirm credit (no beach product, journal only) |
+| journal/vehicle-interior-track/interior/guests-roof.jpg | journal.generic | African Bison // TODO confirm credit (fleet and builder use later) |
+| journal/group-serengeti-sign/travellers-safari-2/3.jpg | journal.generic | African Bison // TODO confirm credit (group travel use) |
 
 Alt text for every image lives in `lib/imagery.ts`.
 
@@ -72,10 +81,13 @@ Alt text for every image lives in `lib/imagery.ts`.
 - `African Bison Classic Tours Logo.jfif`: checkerboard background
   baked into pixels (JFIF has no transparency). Needs a transparent
   PNG export. Reference copy at `images/brand/logo-reference.jpg`.
+- `Guide potrait.png`: 0-byte file, arrived empty. Please re-send.
 
 ## Still needing photography
 
-Nairobi National Park, beach or Zanzibar, Lake Naivasha boat, Samburu,
-Tsavo, Kilimanjaro, true lodge interior, vehicle interior detail,
-guide portrait, family or honeymoon moment, night sky, clean museum
-hall without watermark, transparent logo PNG.
+True lodge interior, guide portrait (re-send, the PNG was empty),
+night sky, honeymoon moment, clean museum hall without watermark,
+transparent logo PNG. Everything else on the shot list is now covered:
+Nairobi National Park, Naivasha boat, Samburu, Tsavo East and West,
+Kilimanjaro summit and Uhuru sign, Zanzibar turtles and Stone Town,
+vehicle interiors, family and group moments.

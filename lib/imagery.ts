@@ -764,6 +764,318 @@ export const IMAGES: ImageEntry[] = [
       "journal.generic"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "samburu-road-aerial",
+    "src": "/images/destinations/samburu-road-aerial.jpg",
+    "alt": "Aerial view of the northern road through Samburu country toward a flat-topped mountain",
+    "width": 1080,
+    "height": 1349,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "destinations/samburu"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "samburu-buffalo-springs",
+    "src": "/images/journal/samburu-buffalo-springs.jpg",
+    "alt": "Safari scene at Buffalo Springs, Samburu",
+    "width": 736,
+    "height": 920,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "samburu-reserve-1",
+    "src": "/images/journal/samburu-reserve-1.jpg",
+    "alt": "Safari scene in Samburu National Reserve",
+    "width": 800,
+    "height": 1200,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "samburu-reserve-2",
+    "src": "/images/journal/samburu-reserve-2.jpg",
+    "alt": "Safari scene in Samburu National Reserve",
+    "width": 736,
+    "height": 917,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "nairobi-park-lion-vehicles",
+    "src": "/images/experiences/nairobi-park-lion-vehicles.jpg",
+    "alt": "Lioness resting beside the track as safari vehicles watch in Nairobi National Park",
+    "width": 1200,
+    "height": 1595,
+    "focal": "50% 55%",
+    "orientation": "portrait",
+    "slots": [
+      "experiences/nairobi-national-park"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "nairobi-park-drive",
+    "src": "/images/experiences/nairobi-park-drive.jpg",
+    "alt": "Game drive in Nairobi National Park",
+    "width": 736,
+    "height": 981,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "experiences/nairobi-national-park"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "nairobi-park-wildlife",
+    "src": "/images/experiences/nairobi-park-wildlife.jpg",
+    "alt": "Wildlife in Nairobi National Park",
+    "width": 736,
+    "height": 553,
+    "focal": "50% 40%",
+    "orientation": "landscape",
+    "slots": [
+      "experiences/nairobi-national-park"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "naivasha-boat-ride",
+    "src": "/images/destinations/naivasha-boat-ride.jpg",
+    "alt": "Guests on a boat ride across Lake Naivasha at dusk",
+    "width": 1200,
+    "height": 900,
+    "focal": "50% 45%",
+    "orientation": "landscape",
+    "slots": [
+      "destinations/lake-naivasha"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "naivasha-lake",
+    "src": "/images/destinations/naivasha-lake.jpg",
+    "alt": "Lake Naivasha, Kenya",
+    "width": 735,
+    "height": 488,
+    "focal": "50% 40%",
+    "orientation": "landscape",
+    "slots": [
+      "destinations/lake-naivasha"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "tsavo-east-elephants",
+    "src": "/images/destinations/tsavo-east-elephants.jpg",
+    "alt": "Elephants drinking at a waterhole in Tsavo East",
+    "width": 640,
+    "height": 480,
+    "focal": "50% 45%",
+    "orientation": "landscape",
+    "slots": [
+      "destinations/tsavo-east"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "tsavo-west-elephants",
+    "src": "/images/destinations/tsavo-west-elephants.jpg",
+    "alt": "Red elephants at a waterhole in Tsavo West",
+    "width": 1200,
+    "height": 1200,
+    "focal": "50% 45%",
+    "orientation": "square",
+    "slots": [
+      "destinations/tsavo-west"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "tsavo-scene",
+    "src": "/images/journal/tsavo-scene.jpg",
+    "alt": "Safari scene in Tsavo",
+    "width": 736,
+    "height": 981,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "kilimanjaro-summit",
+    "src": "/images/destinations/kilimanjaro-summit.jpg",
+    "alt": "Hikers on the rocky summit ridge of Mount Kilimanjaro above the clouds at sunrise",
+    "width": 736,
+    "height": 1104,
+    "focal": "50% 35%",
+    "orientation": "portrait",
+    "slots": [
+      "destinations/kilimanjaro"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "kilimanjaro-uhuru-sign",
+    "src": "/images/destinations/kilimanjaro-uhuru-sign.jpg",
+    "alt": "Uhuru Peak signpost at the summit of Mount Kilimanjaro, Tanzania",
+    "width": 736,
+    "height": 981,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "destinations/kilimanjaro"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "kilimanjaro-mountain",
+    "src": "/images/destinations/kilimanjaro-mountain.jpg",
+    "alt": "Mount Kilimanjaro, Tanzania",
+    "width": 736,
+    "height": 1104,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "destinations/kilimanjaro"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "zanzibar-salaam-turtles",
+    "src": "/images/journal/zanzibar-salaam-turtles.jpg",
+    "alt": "Sea turtles swimming in clear water at Salaam Cave, Zanzibar",
+    "width": 736,
+    "height": 981,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "zanzibar-stone-town",
+    "src": "/images/journal/zanzibar-stone-town.jpg",
+    "alt": "Carved wooden balconies on a historic building in Stone Town, Zanzibar",
+    "width": 736,
+    "height": 981,
+    "focal": "50% 35%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "zanzibar-island",
+    "src": "/images/journal/zanzibar-island.jpg",
+    "alt": "Zanzibar island",
+    "width": 736,
+    "height": 981,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "vehicle-interior-track",
+    "src": "/images/journal/vehicle-interior-track.jpg",
+    "alt": "View from the rear seats of a safari Land Cruiser down a bush track",
+    "width": 1200,
+    "height": 1338,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "vehicle-interior",
+    "src": "/images/journal/vehicle-interior.jpg",
+    "alt": "Inside a safari Land Cruiser",
+    "width": 756,
+    "height": 1008,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "vehicle-guests-roof",
+    "src": "/images/journal/vehicle-guests-roof.jpg",
+    "alt": "Guests waving from the pop-up roof of a safari Land Cruiser",
+    "width": 1200,
+    "height": 1600,
+    "focal": "50% 45%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "group-serengeti-sign",
+    "src": "/images/journal/group-serengeti-sign.jpg",
+    "alt": "Group of travellers posed at the Serengeti National Park entrance sign",
+    "width": 1080,
+    "height": 1350,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "travellers-safari-2",
+    "src": "/images/journal/travellers-safari-2.jpg",
+    "alt": "Travellers enjoying a safari",
+    "width": 1200,
+    "height": 900,
+    "focal": "50% 40%",
+    "orientation": "landscape",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "travellers-safari-3",
+    "src": "/images/journal/travellers-safari-3.jpg",
+    "alt": "Travellers enjoying a safari",
+    "width": 827,
+    "height": 944,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
   }
 ];
 // GENERATED:END
@@ -798,6 +1110,11 @@ const destinationsBySlug: Record<string, string> = {
   tarangire: "destinations/tarangire",
   "lake-manyara": "destinations/lake-manyara",
   nairobi: "destinations/nairobi",
+  samburu: "destinations/samburu",
+  "lake-naivasha": "destinations/lake-naivasha",
+  "tsavo-east": "destinations/tsavo-east",
+  "tsavo-west": "destinations/tsavo-west",
+  kilimanjaro: "destinations/kilimanjaro",
 };
 const postsBySlug: Record<string, string> = {};
 void postsBySlug;
@@ -893,6 +1210,30 @@ export const SLOT_PLAN: PlannedImage[] = [
   { file: "journal/bwindi-forest-1.jpg", slot: "journal.generic", alt: "Gorillas in the forest of Bwindi Impenetrable National Park", note: "Journal use only" },
   { file: "journal/bwindi-forest-2.jpg", slot: "journal.generic", alt: "Gorilla in the forest of Bwindi Impenetrable National Park", note: "Journal use only" },
   { file: "journal/bwindi-forest-3.jpg", slot: "journal.generic", alt: "Forest hillside in Bwindi Impenetrable National Park", note: "Journal use only" },
+  { file: "destinations/samburu-road-aerial.jpg", slot: "destinations/samburu", alt: "Aerial view of the northern road through Samburu country toward a flat-topped mountain" },
+  { file: "journal/samburu-buffalo-springs.jpg", slot: "journal.generic", alt: "Safari scene at Buffalo Springs, Samburu" },
+  { file: "journal/samburu-reserve-1.jpg", slot: "journal.generic", alt: "Safari scene in Samburu National Reserve" },
+  { file: "journal/samburu-reserve-2.jpg", slot: "journal.generic", alt: "Safari scene in Samburu National Reserve" },
+  { file: "experiences/nairobi-park-lion-vehicles.jpg", slot: "experiences/nairobi-national-park", alt: "Lioness resting beside the track as safari vehicles watch in Nairobi National Park" },
+  { file: "experiences/nairobi-park-drive.jpg", slot: "experiences/nairobi-national-park", alt: "Game drive in Nairobi National Park" },
+  { file: "experiences/nairobi-park-wildlife.jpg", slot: "experiences/nairobi-national-park", alt: "Wildlife in Nairobi National Park" },
+  { file: "destinations/naivasha-boat-ride.jpg", slot: "destinations/lake-naivasha", alt: "Guests on a boat ride across Lake Naivasha at dusk" },
+  { file: "destinations/naivasha-lake.jpg", slot: "destinations/lake-naivasha", alt: "Lake Naivasha, Kenya" },
+  { file: "destinations/tsavo-east-elephants.jpg", slot: "destinations/tsavo-east", alt: "Elephants drinking at a waterhole in Tsavo East" },
+  { file: "destinations/tsavo-west-elephants.jpg", slot: "destinations/tsavo-west", alt: "Red elephants at a waterhole in Tsavo West" },
+  { file: "journal/tsavo-scene.jpg", slot: "journal.generic", alt: "Safari scene in Tsavo" },
+  { file: "destinations/kilimanjaro-summit.jpg", slot: "destinations/kilimanjaro", alt: "Hikers on the rocky summit ridge of Mount Kilimanjaro above the clouds at sunrise" },
+  { file: "destinations/kilimanjaro-uhuru-sign.jpg", slot: "destinations/kilimanjaro", alt: "Uhuru Peak signpost at the summit of Mount Kilimanjaro, Tanzania" },
+  { file: "destinations/kilimanjaro-mountain.jpg", slot: "destinations/kilimanjaro", alt: "Mount Kilimanjaro, Tanzania" },
+  { file: "journal/zanzibar-salaam-turtles.jpg", slot: "journal.generic", alt: "Sea turtles swimming in clear water at Salaam Cave, Zanzibar", note: "No beach product in catalogue, journal use only" },
+  { file: "journal/zanzibar-stone-town.jpg", slot: "journal.generic", alt: "Carved wooden balconies on a historic building in Stone Town, Zanzibar", note: "Journal use only" },
+  { file: "journal/zanzibar-island.jpg", slot: "journal.generic", alt: "Zanzibar island", note: "Journal use only" },
+  { file: "journal/vehicle-interior-track.jpg", slot: "journal.generic", alt: "View from the rear seats of a safari Land Cruiser down a bush track", note: "Fleet and builder use later" },
+  { file: "journal/vehicle-interior.jpg", slot: "journal.generic", alt: "Inside a safari Land Cruiser", note: "Fleet and builder use later" },
+  { file: "journal/vehicle-guests-roof.jpg", slot: "journal.generic", alt: "Guests waving from the pop-up roof of a safari Land Cruiser" },
+  { file: "journal/group-serengeti-sign.jpg", slot: "journal.generic", alt: "Group of travellers posed at the Serengeti National Park entrance sign", note: "Group travel use" },
+  { file: "journal/travellers-safari-2.jpg", slot: "journal.generic", alt: "Travellers enjoying a safari" },
+  { file: "journal/travellers-safari-3.jpg", slot: "journal.generic", alt: "Travellers enjoying a safari" },
 
   // EXCLUDED from public/images (stays in incoming/, never committed):
   // - "Exhibit 1 inside the museum.jpg": third-party "Beads Safaris
@@ -900,5 +1241,6 @@ export const SLOT_PLAN: PlannedImage[] = [
   // - "African Bison Classic Tours Logo.jfif": checkerboard background
   //   baked into pixels (JFIF has no transparency). Needs a transparent
   //   PNG export. Reference copy at images/brand/logo-reference.jpg.
+  // - "Guide potrait.png": arrived as a 0-byte file. Please re-send.
 ];
 

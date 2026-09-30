@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteBadge } from "@/components/site-badge";
 import { Container } from "@/components/ui/layout";
 
 const SAFARIS = [
@@ -23,11 +24,10 @@ const COMPANY = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-20 bg-ink text-ivory">
+    <footer className="bg-night text-ivory">
       <Container className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="type-label text-sand">African Bison</p>
-          <p className="font-display mt-1 text-2xl font-semibold">Classic Tours</p>
+          <SiteBadge />
           <p className="type-small mt-3 text-ivory/70">
             East African safaris, planned around you. Nairobi, Kenya.
           </p>

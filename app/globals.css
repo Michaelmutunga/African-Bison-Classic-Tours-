@@ -172,6 +172,20 @@ body {
   animation: ken-burns 24s var(--ease-expo) both;
 }
 
+/* Full-screen mobile menu links: staggered rise when the dialog opens.
+   The global reduced-motion rule already collapses these transitions. */
+.menu-link {
+  opacity: 0;
+  translate: 0 14px;
+  transition:
+    opacity 0.5s var(--ease-expo),
+    translate 0.5s var(--ease-expo);
+}
+dialog[open] .menu-link {
+  opacity: 1;
+  translate: none;
+}
+
 /* Lenis recommended base styles (only take effect when active). */
 html.lenis-active,
 html.lenis-active body {

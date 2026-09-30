@@ -41,7 +41,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "70% 25%",
     "orientation": "portrait",
     "slots": [
-      "hero.primary"
+      "hero.primary",
+      "hero.sky"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -67,7 +68,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 35%",
     "orientation": "portrait",
     "slots": [
-      "statement.break"
+      "statement.break",
+      "hero.sunset"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -80,7 +82,8 @@ export const IMAGES: ImageEntry[] = [
     "focal": "50% 40%",
     "orientation": "portrait",
     "slots": [
-      "migration.scene"
+      "migration.scene",
+      "hero.savannah"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },
@@ -174,7 +177,8 @@ export const IMAGES: ImageEntry[] = [
     "orientation": "portrait",
     "slots": [
       "tours/category/kenya",
-      "destinations/masai-mara"
+      "destinations/masai-mara",
+      "hero.wildlife"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
   },

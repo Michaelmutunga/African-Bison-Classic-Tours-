@@ -186,6 +186,17 @@ dialog[open] .menu-link {
   translate: none;
 }
 
+/* Split-character poster type: desktop pointers invert a character on
+   hover. Ivory and sand both hold AA contrast over the dark scrims. */
+.split-char {
+  transition: color 0.2s var(--ease-expo);
+}
+@media (hover: hover) and (pointer: fine) {
+  .split-char:hover {
+    color: var(--color-sand);
+  }
+}
+
 /* Lenis recommended base styles (only take effect when active). */
 html.lenis-active,
 html.lenis-active body {

@@ -7,6 +7,7 @@ import { SiteBadge } from "@/components/site-badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Container } from "@/components/ui/layout";
 import { cn } from "@/lib/cn";
+import { SITE_CONTACT } from "@/lib/site-contact";
 
 const NAV = [
   { href: "/tours", label: "Safaris" },
@@ -44,12 +45,28 @@ export function SiteHeader() {
   const heroRoute = isHeroRoute(pathname);
   const transparent = heroRoute && !scrolled && !menuOpen;
 
+  // Hydration sentinel for e2e: flips only after client hydration, so
+  // specs never interact with pre-hydration markup on slow machines.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
+    document.documentElement.dataset.hydrated = "true";
+  }, []);
+
+  useEffect(() => {
+    // The descent hero is dark for several viewports, so the header
+    // stays transparent with light text through it on the homepage.
+    const onScroll = () => {
+      const limit =
+        pathname === "/" ? window.innerHeight * 3.8 : 24;
+      setScrolled(window.scrollY > limit);
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, [pathname]);
 
   // Native modal dialog: free Escape handling, focus trap and focus
   // return. Body scroll is locked while open.
@@ -92,10 +109,10 @@ export function SiteHeader() {
           aria-hidden={scrolled}
         >
           <Container className="flex items-center justify-between gap-4 py-1.5">
-            <p className="type-caption">Nairobi, Kenya · Private & independent safari company</p>
+            <p className="type-caption">{SITE_CONTACT.placeLine}</p>
             <p className="type-caption hidden sm:block">
-              <a href="tel:+254734466432" className="underline underline-offset-4" tabIndex={scrolled ? -1 : undefined}>
-                +254 734 466 432
+              <a href={SITE_CONTACT.phoneHref} className="underline underline-offset-4" tabIndex={scrolled ? -1 : undefined}>
+                {SITE_CONTACT.phoneDisplay}
               </a>
             </p>
           </Container>
@@ -193,8 +210,8 @@ export function SiteHeader() {
             Design your safari
           </ButtonLink>
           <p className="type-small text-center text-ivory/70">
-            <a href="tel:+254734466432" className="underline underline-offset-4">
-              +254 734 466 432
+            <a href={SITE_CONTACT.phoneHref} className="underline underline-offset-4">
+              {SITE_CONTACT.phoneDisplay}
             </a>
           </p>
         </Container>

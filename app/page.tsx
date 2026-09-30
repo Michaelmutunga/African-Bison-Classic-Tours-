@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { DestinationCard, PostCard } from "@/components/cards";
+import { DescentHero } from "@/components/motion/descent-hero";
+import { DrawPath } from "@/components/motion/draw-path";
+import { Parallax } from "@/components/motion/parallax";
+import { Reveal } from "@/components/motion/reveal";
+import { ScrollProgress } from "@/components/motion/scroll-progress";
+import { ScrollWords } from "@/components/motion/scroll-words";
+import { WelcomeIntro } from "@/components/motion/welcome-intro";
+import { MigrationScene } from "@/components/migration-scene";
+import { SafariImage } from "@/components/safari-image";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Container, SectionHeading } from "@/components/ui/layout";
@@ -11,9 +19,27 @@ import {
 } from "@/lib/catalog";
 import { publicPostSummaries } from "@/server/content-admin";
 import { experiences } from "@/lib/content";
+import { imageForDestination, imageForSlot, imageForTour, imagesForSlot } from "@/lib/imagery";
+import { SITE_CONTACT } from "@/lib/site-contact";
 
 // Public catalogue reads need the database at request time.
 export const dynamic = "force-dynamic";
+
+const ROUTE_STOPS = [
+  { name: "Nairobi", slug: "nairobi" },
+  { name: "Amboseli", slug: "amboseli" },
+  { name: "Lake Naivasha", slug: "lake-naivasha" },
+  { name: "Lake Nakuru", slug: "lake-nakuru" },
+  { name: "Masai Mara", slug: "masai-mara" },
+  { name: "Serengeti", slug: "serengeti" },
+  { name: "Ngorongoro", slug: "ngorongoro" },
+] as const;
+
+function heroImage(slot: string, fallbackSlot: string) {
+  const image = imageForSlot(slot) ?? imageForSlot(fallbackSlot);
+  if (!image) throw new Error(`Homepage hero imagery missing: ${slot}`);
+  return image;
+}
 
 export default async function HomePage() {
   // One tour-table scan per request: categories, counts and per-category
@@ -29,48 +55,84 @@ export default async function HomePage() {
   const toursByCategory = new Map(categories.map((c) => [c.slug, summarizeTours(tours, c.slug).slice(0, 3)]));
   const latestPosts = allPosts.slice(0, 3);
   const featuredDestinations = destinations.slice(0, 8);
+  const journalPool = imagesForSlot("journal.generic");
+
+  const sky = heroImage("hero.sky", "hero.primary");
+  const sunset = heroImage("hero.sunset", "statement.break");
+  const savannah = heroImage("hero.savannah", "migration.scene");
+  const wildlife = heroImage("hero.wildlife", "destinations/masai-mara");
+  const migrationPoster = heroImage("migration.scene", "hero.savannah");
+  const featured = categories.length > 0 ? (toursByCategory.get(categories[0].slug) ?? [])[0] : undefined;
+  const featuredImage = featured ? imageForTour(featured.slug, featured.categorySlug) : null;
 
   return (
     <>
-      <section className="bg-ink text-ivory">
-        <Container className="py-16 sm:py-24">
-          <p className="type-label text-sand">Your Africa. Your way.</p>
-          <h1 className="type-display mt-4 max-w-4xl text-balance">
-            East African safaris, designed around you.
-          </h1>
-          <p className="type-body mt-5 max-w-2xl text-ivory/75">
-            Private Kenya and Tanzania journeys — Mara river crossings, Amboseli
-            elephants beneath Kilimanjaro, the Serengeti plains. Planned with
-            people who know the ground.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href="/builder" variant="accent" size="lg">
-              Design your safari
-            </ButtonLink>
-            <ButtonLink
-              href="/tours"
-              size="lg"
-              className="border border-ivory/30 text-ivory hover:border-ivory hover:bg-ivory/10"
-            >
-              Explore safaris
-            </ButtonLink>
-          </div>
+      <ScrollProgress />
+      <WelcomeIntro />
+      <DescentHero
+        sky={sky}
+        sunset={sunset}
+        savannah={savannah}
+        wildlife={wildlife}
+        destinationsCount={destinations.length}
+      />
+
+      <section aria-label="How we plan" className="bg-ivory">
+        <Container className="py-20 sm:py-28">
+          <ScrollWords
+            text="Private journeys, planned by people who know the ground. No queues, no scripts, no rushing."
+            className="font-display max-w-4xl text-3xl leading-tight font-medium tracking-tight text-balance sm:text-5xl"
+          />
         </Container>
       </section>
 
-      <Container className="py-14 sm:py-20">
-        <SectionHeading
-          eyebrow="Signature journeys"
-          title="Safaris with day-by-day itineraries"
-          lede="Every journey below is a real itinerary we operate — open one to see each day, what is included, and what is not."
-        />
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {categories.map((category) => {
+      <section id="journeys" aria-label="Signature journeys" className="scroll-mt-24 bg-sand/40">
+        <Container className="py-14 sm:py-20">
+          <SectionHeading
+            eyebrow="Signature journeys"
+            title="Safaris with day-by-day itineraries"
+            lede="Every journey below is a real itinerary we operate — open one to see each day, what is included, and what is not."
+          />
+          {featured ? (
+            <Reveal className="mt-8">
+              <article className="grid overflow-hidden bg-night text-ivory md:grid-cols-2">
+                <SafariImage
+                  seed={featured.slug}
+                  label={featured.title}
+                  alt={featuredImage?.alt ?? `${featured.title} — photo pending`}
+                  src={featuredImage?.src}
+                  focal={featuredImage?.focal}
+                  priority={false}
+                  quiet
+                  ratio="aspect-[16/10] md:aspect-auto md:min-h-[22rem]"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+                <div className="flex flex-col justify-center p-8 sm:p-10">
+                  <p className="type-label text-sand">Featured · {featured.categoryLabel}</p>
+                  <h3 className="type-h1 mt-2 text-balance">
+                    <Link href={`/tours/${featured.slug}`} className="hover:text-sand">
+                      {featured.title}
+                    </Link>
+                  </h3>
+                  <p className="type-small mt-3 text-ivory/70">
+                    {featured.durationDays} day{featured.durationDays === 1 ? "" : "s"} · Private & tailor-made
+                  </p>
+                  <p className="mt-5">
+                    <Link href={`/tours/${featured.slug}`} className="type-small font-semibold underline underline-offset-4 hover:text-sand">
+                      View itinerary →
+                    </Link>
+                  </p>
+                </div>
+              </article>
+            </Reveal>
+          ) : null}
+          <div className="mt-10 grid gap-8 md:grid-cols-2">
+            {categories.map((category) => {
               const list = toursByCategory.get(category.slug) ?? [];
               return (
                 <section key={category.slug} aria-label={category.label}>
                   <div className="flex items-baseline justify-between gap-4 border-b border-ink/15 pb-2">
-                    <h2 className="type-h3">{category.label}</h2>
+                    <h3 className="type-h3">{category.label}</h3>
                     <Link
                       href={`/tours?category=${category.slug}`}
                       className="type-small whitespace-nowrap underline underline-offset-4 hover:text-clay-deep"
@@ -78,119 +140,250 @@ export default async function HomePage() {
                       All {category.count} →
                     </Link>
                   </div>
-                  <ul className="divide-y divide-ink/10">
-                    {list.map((tour) => (
-                      <li key={tour.slug} className="py-3">
-                        <Link
-                          href={`/tours/${tour.slug}`}
-                          className="type-small font-medium hover:text-clay-deep"
-                        >
-                          {tour.title}
-                        </Link>
-                        <p className="type-caption text-ink/60">
-                          {tour.durationDays} day{tour.durationDays === 1 ? "" : "s"} ·{" "}
-                          {tour.categoryLabel}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mt-4 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
+                    {list.map((tour) => {
+                      const image = imageForTour(tour.slug, tour.categorySlug);
+                      return (
+                        <article key={tour.slug} className="w-56 shrink-0 snap-start border border-ink/10 bg-ivory">
+                          <SafariImage
+                            seed={tour.slug}
+                            label={tour.title}
+                            alt={image?.alt ?? `${tour.title} — photo pending`}
+                            src={image?.src}
+                            focal={image?.focal}
+                            ratio="aspect-[4/3]"
+                            sizes="224px"
+                          />
+                          <div className="p-4">
+                            <p className="type-caption text-ink/60">
+                              {tour.durationDays} day{tour.durationDays === 1 ? "" : "s"} · {tour.categoryLabel}
+                            </p>
+                            <h4 className="type-small mt-1 font-semibold">
+                              <Link href={`/tours/${tour.slug}`} className="hover:text-clay-deep">
+                                {tour.title}
+                              </Link>
+                            </h4>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
                 </section>
               );
             })}
-
-        </div>
-        <p className="type-small mt-6 text-ink/70">
-          {tourCount} published itineraries. Pricing is quoted per trip —{" "}
-          <Link href="/contact" className="underline underline-offset-4">
-            ask for a quote
-          </Link>
-          .
-        </p>
-      </Container>
-
-      <section className="border-y border-ink/10 bg-earth-deep text-ivory">
-        <Container className="py-14 sm:py-20">
-          <p className="type-label text-sand">The great migration</p>
-          <h2 className="type-h2 mt-2 max-w-3xl text-balance">
-            Two million wildebeest between the Serengeti and the Mara, typically
-            crossing the Mara River from July to October.
-          </h2>
-          <p className="type-body mt-4 max-w-2xl text-ivory/75">
-            River crossings are a highlight of the migration season — but
-            wildlife moves on its own schedule. We plan around the season, never
-            promise a crossing.
-          </p>
-          <div className="mt-6">
-            <ButtonLink
-              href="/tours?category=kenya-tanzania"
-              variant="accent"
-              className="border border-ivory/20"
-            >
-              Migration-season safaris
-            </ButtonLink>
           </div>
+          <p className="type-small mt-6 text-ink/70">
+            {tourCount} published itineraries. Pricing is quoted per trip —{" "}
+            <Link href="/contact" className="underline underline-offset-4">
+              ask for a quote
+            </Link>
+            .
+          </p>
         </Container>
       </section>
 
-      <Container className="py-14 sm:py-20">
-        <SectionHeading
-          eyebrow="Destinations"
-          title="Where the journeys go"
-          lede="Sixteen parks, reserves, lakes and mountains across Kenya and Tanzania."
-        />
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredDestinations.map((destination) => (
-            <DestinationCard key={destination.slug} destination={destination} />
-          ))}
-        </div>
-        <p className="mt-6">
-          <Link href="/destinations" className="type-small underline underline-offset-4 hover:text-clay-deep">
-            All destinations →
-          </Link>
-        </p>
-      </Container>
+      <MigrationScene poster={migrationPoster} videoSrc="/video/hero.mp4" />
 
-      <section className="border-y border-ink/10 bg-parchment">
+      <section aria-label="A classic route" className="bg-ivory">
+        <Container className="py-14 sm:py-20">
+          <SectionHeading
+            eyebrow="One classic line"
+            title="Nairobi to the crater, overland"
+            lede="A schematic of the journey most first-time visitors dream about. Your own route can start anywhere."
+          />
+          <Reveal className="mt-8 text-earth-deep">
+            <DrawPath
+              d="M20 170 C 140 170, 160 60, 280 90 S 420 180, 540 110 S 700 60, 780 90"
+              title="Schematic safari route from Nairobi to Ngorongoro"
+            />
+          </Reveal>
+          <ol className="mt-6 flex flex-wrap gap-2">
+            {ROUTE_STOPS.map((stop, index) => (
+              <li key={stop.slug} className="flex items-center gap-2">
+                {index > 0 ? <span aria-hidden="true" className="text-ink/30">→</span> : null}
+                <Link href={`/destinations/${stop.slug}`}>
+                  <Badge tone="sand">{stop.name}</Badge>
+                </Link>
+              </li>
+            ))}
+          </ol>
+          <p className="type-caption mt-4 text-ink/60">
+            Schematic route, not to scale. No distances or drive times are shown because conditions change.
+          </p>
+          <p className="mt-6">
+            <ButtonLink href="/builder">Design your safari</ButtonLink>
+          </p>
+        </Container>
+      </section>
+
+      <section aria-label="Destinations" className="bg-parchment">
+        <Container className="py-14 sm:py-20">
+          <SectionHeading
+            eyebrow="Destinations"
+            title="Where the journeys go"
+            lede={`${destinations.length} parks, reserves, lakes and mountains across Kenya and Tanzania. ${experiences.length} Nairobi experiences alongside.`}
+          />
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {featuredDestinations.map((destination, index) => {
+              const image = imageForDestination(destination.slug);
+              const large = index === 0;
+              return (
+                <Parallax
+                  key={destination.slug}
+                  className={large ? "sm:col-span-2 sm:row-span-2" : undefined}
+                >
+                  <Link
+                    href={`/destinations/${destination.slug}`}
+                    className="group relative block overflow-hidden bg-night text-ivory"
+                  >
+                    <SafariImage
+                      seed={destination.slug}
+                      label={destination.name}
+                      alt={image?.alt ?? `${destination.name} — photo pending`}
+                      src={image?.src}
+                      focal={image?.focal}
+                      ratio={large ? "aspect-[16/10] sm:aspect-auto sm:h-full sm:min-h-[26rem]" : "aspect-[4/3]"}
+                      sizes={large ? "(max-width: 640px) 100vw, 50vw" : "(max-width: 640px) 100vw, 25vw"}
+                    />
+                    <span className="absolute inset-0" style={{ background: "var(--scrim)" }} aria-hidden="true" />
+                    <span className="absolute inset-x-0 bottom-0 p-5">
+                      <span className="type-label text-sand">{destination.country}</span>
+                      <span className="type-h3 mt-1 block">{destination.name}</span>
+                      <span className="type-small mt-1 line-clamp-2 block text-ivory/75 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                        {destination.excerpt}
+                      </span>
+                    </span>
+                  </Link>
+                </Parallax>
+              );
+            })}
+          </div>
+          <p className="mt-6">
+            <Link href="/destinations" className="type-small underline underline-offset-4 hover:text-clay-deep">
+              All destinations →
+            </Link>
+          </p>
+        </Container>
+      </section>
+
+      <section aria-label="Nairobi in a day" className="bg-bark-deep text-ivory">
         <Container className="py-14 sm:py-20">
           <SectionHeading
             eyebrow="Nairobi in a day"
             title="Start or end with the city"
             lede="Six experiences within reach of Jomo Kenyatta International Airport."
           />
-          <div className="mt-6 flex flex-wrap gap-2">
-            {experiences.map((experience) => (
-              <Link key={experience.slug} href="/experiences">
-                <Badge tone="sand">{experience.name}</Badge>
-              </Link>
-            ))}
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {experiences.map((experience) => {
+              const image = imageForSlot(`experiences/${experience.slug}`);
+              return (
+                <Link
+                  key={experience.slug}
+                  href="/experiences"
+                  className="group relative block overflow-hidden bg-night"
+                >
+                  <SafariImage
+                    seed={experience.slug}
+                    label={experience.name}
+                    alt={image?.alt ?? `${experience.name} — photo pending`}
+                    src={image?.src}
+                    focal={image?.focal}
+                    ratio="aspect-[4/3]"
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                  />
+                  <span className="absolute inset-0" style={{ background: "var(--scrim)" }} aria-hidden="true" />
+                  <span className="absolute inset-x-0 bottom-0 p-5">
+                    <span className="type-small font-semibold">{experience.name}</span>
+                    <span className="type-small mt-1 line-clamp-2 block text-ivory/75 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                      {experience.excerpt}
+                    </span>
+                  </span>
+                </Link>
+              );
+            })}
           </div>
         </Container>
       </section>
 
-      <Container className="py-14 sm:py-20">
-        <SectionHeading
-          eyebrow="Journal"
-          title="Planning guides and field notes"
-          lede={`${allPosts.length} articles on seasons, costs, packing, photography and destinations.`}
-        />
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          {latestPosts.map((post) => (
-            <PostCard key={post.slug} post={post} />
-          ))}
-        </div>
-        <p className="mt-6">
-          <Link href="/blog" className="type-small underline underline-offset-4 hover:text-clay-deep">
-            All articles →
-          </Link>
-        </p>
-      </Container>
+      <section aria-label="Why African Bison" className="border-y border-ivory/10 bg-earth-deep text-ivory">
+        <Container className="py-14 sm:py-20">
+          <p className="type-label text-sand">Why African Bison</p>
+          <div className="mt-4 grid gap-8 md:grid-cols-3">
+            <div>
+              <p className="font-display text-4xl">JKIA, Nairobi</p>
+              <p className="type-small mt-2 text-ivory/75">Based at the airport, first floor, suite 1. We meet you at arrivals.</p>
+            </div>
+            <div>
+              <p className="font-display text-4xl">Private</p>
+              <p className="type-small mt-2 text-ivory/75">Independent company, private vehicles, tailor-made itineraries.</p>
+            </div>
+            <div>
+              <p className="font-display text-4xl tabular-nums">{tourCount}</p>
+              <p className="type-small mt-2 text-ivory/75">Published day-by-day itineraries across Kenya and Tanzania.</p>
+            </div>
+          </div>
+        </Container>
+      </section>
 
-      <section className="bg-ink text-ivory">
-        <Container className="py-14 text-center sm:py-20">
-          <h2 className="type-h2 mx-auto max-w-2xl text-balance">
+      <section aria-label="Journal" className="bg-ivory">
+        <Container className="py-14 sm:py-20">
+          <SectionHeading
+            eyebrow="Journal"
+            title="Planning guides and field notes"
+            lede={`${allPosts.length} articles on seasons, costs, packing, photography and destinations.`}
+          />
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {latestPosts.map((post, index) => {
+              const image = journalPool[index % Math.max(journalPool.length, 1)];
+              return (
+                <article key={post.slug} className="border border-ink/10">
+                  <SafariImage
+                    seed={post.slug}
+                    label={post.title}
+                    alt={image?.alt ?? `${post.title} — photo pending`}
+                    src={image?.src}
+                    focal={image?.focal}
+                    ratio="aspect-[16/10]"
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                  />
+                  <div className="p-5">
+                    <h3 className="type-h3">
+                      <Link href={`/blog/${post.slug}`} className="hover:text-clay-deep">
+                        {post.title}
+                      </Link>
+                    </h3>
+                    <p className="type-small mt-2 line-clamp-3 text-ink/70">{post.excerpt}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          <p className="mt-6">
+            <Link href="/blog" className="type-small underline underline-offset-4 hover:text-clay-deep">
+              All articles →
+            </Link>
+          </p>
+        </Container>
+      </section>
+
+      <section aria-label="Start planning" className="bg-night text-ivory">
+        <Container className="py-20 text-center sm:py-28">
+          <p className="type-label text-sand">Start planning</p>
+          <h2 className="type-h2 mx-auto mt-2 max-w-2xl text-balance">
             Tell us the trip you are dreaming of. We will design it.
           </h2>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <p className="mt-8">
+            <a href={SITE_CONTACT.phoneHref} className="type-mega tabular-nums hover:text-sand">
+              {SITE_CONTACT.phoneDisplay}
+            </a>
+          </p>
+          <p className="type-small mt-4 text-ivory/70">
+            {SITE_CONTACT.addressLines.join(" · ")} ·{" "}
+            <a href={`mailto:${SITE_CONTACT.email}`} className="underline underline-offset-4">
+              {SITE_CONTACT.email}
+            </a>
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <ButtonLink href="/builder" variant="accent" size="lg">
               Start planning
             </ButtonLink>

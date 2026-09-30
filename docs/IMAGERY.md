@@ -32,10 +32,11 @@ and keep the intentional placeholder.
 
 | File | Slot | Credit |
 |---|---|---|
-| hero/balloon-basket-sunrise.jpg | hero.primary | African Bison // TODO confirm credit |
+| hero/balloon-basket-sunrise.jpg | hero.primary + hero.sky | African Bison // TODO confirm credit |
 | hero/balloon-over-herds.jpg | closing.background | African Bison // TODO confirm credit |
-| hero/savanna-sunset-encounter.jpg | statement.break | African Bison // TODO confirm credit |
-| hero/migration-river-sunset.jpg | migration.scene | African Bison // TODO confirm credit |
+| hero/savanna-sunset-encounter.jpg | statement.break + hero.sunset | African Bison // TODO confirm credit |
+| hero/migration-river-sunset.jpg | migration.scene + hero.savannah | African Bison // TODO confirm credit |
+| tours/mara-zebras-dusk.jpg | kenya, masai-mara + hero.wildlife | African Bison // TODO confirm credit |
 | tours/mara-migration-descent.jpg | kenya-tanzania | African Bison // TODO confirm credit |
 | tours/mara-game-drive-herd.jpg | kenya | African Bison // TODO confirm credit |
 | tours/serengeti-river-crossing.jpg | tanzania, kenya-tanzania, serengeti | African Bison // TODO confirm credit |

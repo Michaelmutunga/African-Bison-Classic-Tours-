@@ -15,7 +15,7 @@ export function SiteBadge({ size = 40 }: { size?: number }) {
         width={size}
         height={size}
         sizes={`${size}px`}
-        style={{ width: size, height: "auto" }}
+        style={{ width: size, height: size }}
         className="shrink-0"
         priority={false}
       />

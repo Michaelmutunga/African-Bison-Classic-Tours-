@@ -2,12 +2,11 @@
 
 import { LazyMotion, domAnimation, m } from "motion/react";
 import { useEffect, useState } from "react";
-import { usePrefersReducedMotion } from "@/components/motion/use-calm";
+import { useMounted, usePrefersReducedMotion } from "@/components/motion/use-calm";
 
 const SESSION_KEY = "abct-intro-played";
 
 function shouldShowIntro(): boolean {
-  if (typeof window === "undefined") return false;
   try {
     return window.sessionStorage.getItem(SESSION_KEY) !== "1";
   } catch {
@@ -15,26 +14,39 @@ function shouldShowIntro(): boolean {
   }
 }
 
+/** True once the welcome overlay has played this session. */
+export function hasPlayedIntro(): boolean {
+  try {
+    return window.sessionStorage.getItem(SESSION_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Homepage welcome overlay. Real content stays mounted underneath and
  * the h1 is never hidden: this is a fixed overlay that lifts like a
- * curtain (about 1.65s total), plays once per session, and is skipped
- * entirely for reduced motion. After the animation it is removed from
- * the DOM and never blocks pointer events.
+ * curtain (about 1.2s total), plays once per session, and is skipped
+ * entirely for reduced motion. It mounts only on the client after
+ * hydration, so the server HTML always matches. After the animation it
+ * is removed from the DOM and never blocks pointer events.
  */
 export function WelcomeIntro() {
+  const mounted = useMounted();
   const reduced = usePrefersReducedMotion();
-  const [firstVisit] = useState(shouldShowIntro);
   const [dismissed, setDismissed] = useState(false);
+  // Render-time session read only: first render is always hidden, which
+  // matches the server, so hydration never mismatches.
+  const show = mounted && !reduced && !dismissed && shouldShowIntro();
 
   useEffect(() => {
-    if (!firstVisit) return;
+    if (!show) return;
     // Safety net in case animation events never fire.
-    const fallback = window.setTimeout(() => setDismissed(true), 2600);
+    const fallback = window.setTimeout(() => setDismissed(true), 2200);
     return () => window.clearTimeout(fallback);
-  }, [firstVisit]);
+  }, [show]);
 
-  if (reduced || !firstVisit || dismissed) return null;
+  if (!show) return null;
 
   const dismiss = () => {
     setDismissed(true);
@@ -52,7 +64,7 @@ export function WelcomeIntro() {
         className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-night"
         initial={{ y: "0%" }}
         animate={{ y: "-100%" }}
-        transition={{ duration: 0.65, delay: 1.0, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 0.55, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
         onAnimationComplete={dismiss}
       >
         <m.div
@@ -76,7 +88,7 @@ export function WelcomeIntro() {
               strokeWidth="1.5"
               initial={{ pathLength: 0 }}
               animate={{ pathLength: 1 }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             />
             <text
               x="36"

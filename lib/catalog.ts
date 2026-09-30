@@ -27,6 +27,7 @@ export interface PublicDestinationSummary {
   name: string;
   country: string;
   excerpt: string;
+  highlights: string[];
 }
 
 function toSummary(tour: {
@@ -124,6 +125,7 @@ export async function publicDestinations(): Promise<PublicDestinationSummary[]> 
     name: d.name,
     country: d.country,
     excerpt: d.excerpt,
+    highlights: d.highlights ?? [],
   }));
 }
 

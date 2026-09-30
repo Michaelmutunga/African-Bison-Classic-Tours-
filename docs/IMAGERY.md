@@ -1,9 +1,10 @@
 # Imagery (cinematic revamp)
 
-Source: 82 client-supplied files in `incoming/` (never committed).
-Processed: 80 photos to `public/images/` (max 1800px long edge, EXIF/GPS
-stripped, quality-82 JPEG, 12.9 MB total). No stock, no hotlinking, no
-remote hosts. CSP keeps `media-src 'self'` unchanged.
+Source: 95 client-supplied files in `incoming/` (never committed).
+Processed: 92 photos to `public/images/` (max 1800px long edge, EXIF/GPS
+stripped, quality-82 JPEG, 14.8 MB total) plus the transparent brand
+logo as PNG with alpha preserved. No stock, no hotlinking, no remote
+hosts. CSP keeps `media-src 'self'` unchanged.
 
 ## Drop points
 
@@ -71,6 +72,12 @@ and keep the intentional placeholder.
 | journal/zanzibar-salaam-turtles/stone-town/island.jpg | journal.generic | African Bison // TODO confirm credit (no beach product, journal only) |
 | journal/vehicle-interior-track/interior/guests-roof.jpg | journal.generic | African Bison // TODO confirm credit (fleet and builder use later) |
 | journal/group-serengeti-sign/travellers-safari-2/3.jpg | journal.generic | African Bison // TODO confirm credit (group travel use) |
+| journal/lodge-deck-elephants/lounge/deck-sunset/pool/bedroom.jpg | stay/* + journal.generic | African Bison // TODO confirm credit (do not name the lodge) |
+| journal/honeymoon-roof/dinner/pool.jpg | stay/honeymoon* + journal.generic | African Bison // TODO confirm credit |
+| texture/night-dinner/stars.jpg | texture/* + journal.generic | African Bison // TODO confirm credit |
+| experiences/nairobi-museum-hall.jpg | nairobi-national-museum | African Bison // TODO confirm credit (clean, watermark-free) |
+| journal/guide-portrait.jpg | team/guide + journal.generic | African Bison // TODO confirm credit |
+| brand/logo.png | header badge + favicon source (unregistered) | Client artwork, alpha preserved |
 
 Alt text for every image lives in `lib/imagery.ts`.
 
@@ -81,13 +88,16 @@ Alt text for every image lives in `lib/imagery.ts`.
 - `African Bison Classic Tours Logo.jfif`: checkerboard background
   baked into pixels (JFIF has no transparency). Needs a transparent
   PNG export. Reference copy at `images/brand/logo-reference.jpg`.
-- `Guide potrait.png`: 0-byte file, arrived empty. Please re-send.
+- `Guide potrait.png`: 0-byte file, superseded by the re-sent
+  `Guide potrait.jpg`.
 
 ## Still needing photography
 
-True lodge interior, guide portrait (re-send, the PNG was empty),
-night sky, honeymoon moment, clean museum hall without watermark,
-transparent logo PNG. Everything else on the shot list is now covered:
-Nairobi National Park, Naivasha boat, Samburu, Tsavo East and West,
-Kilimanjaro summit and Uhuru sign, Zanzibar turtles and Stone Town,
-vehicle interiors, family and group moments.
+Nothing on the shot list is outstanding. Every slot has photography:
+lodge interiors, guide portrait, night skies, honeymoon moments, clean
+museum hall, transparent logo, Nairobi National Park, Naivasha boat,
+Samburu, Tsavo East and West, Kilimanjaro summit and Uhuru sign,
+Zanzibar turtles and Stone Town, vehicle interiors, family and group
+moments. Only Lake Bogoria, Ol Pejeta and Kilimanjaro-as-destination
+detail beyond the summit remain imageless by choice rather than borrowing
+a wrong park's photo.

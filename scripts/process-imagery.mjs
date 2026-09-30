@@ -180,8 +180,33 @@ const MAPPING = [
     "Travellers enjoying a safari", "50% 40%", ["journal.generic"]],
   ["Family moment.jpg", "journal/travellers-safari-3.jpg", "travellers-safari-3",
     "Travellers enjoying a safari", "50% 40%", ["journal.generic"]],
+  ["Lodge interior 4.jpg", "journal/lodge-deck-elephants.jpg", "lodge-deck-elephants",
+    "Lodge deck with chairs overlooking elephants at a waterhole", "50% 45%", ["stay/lodge-deck", "journal.generic"]],
+  ["Lodge interior 1.jpg", "journal/lodge-lounge.jpg", "lodge-lounge",
+    "Tented lodge lounge with rattan lamps opening onto a deck", "50% 45%", ["stay/lodge-lounge", "journal.generic"]],
+  ["Lodge interior 2.jpg", "journal/lodge-deck-sunset.jpg", "lodge-deck-sunset",
+    "Lodge deck with loungers overlooking elephants at a waterhole at sunset", "50% 45%", ["stay/lodge-deck-sunset", "journal.generic"]],
+  ["Lodge interior 3.jpg", "journal/lodge-pool.jpg", "lodge-pool",
+    "Lodge swimming pool with loungers under acacia trees", "50% 45%", ["stay/lodge-pool", "journal.generic"]],
+  ["Lodge interior.jpg", "journal/lodge-bedroom.jpg", "lodge-bedroom",
+    "Lodge bedroom with thatched roof opening onto a deck", "50% 45%", ["stay/lodge-bedroom", "journal.generic"]],
+  ["Honeymoon moment.jpg", "journal/honeymoon-roof.jpg", "honeymoon-roof",
+    "Couple sharing champagne on a vehicle roof deck at sunset with elephants behind", "50% 40%", ["stay/honeymoon", "journal.generic"]],
+  ["Honeymoon moment 1.jpg", "journal/honeymoon-dinner.jpg", "honeymoon-dinner",
+    "Private dinner with fire pit on a lodge deck at dusk", "50% 45%", ["stay/honeymoon-dinner", "journal.generic"]],
+  ["Honeymoon moment 2.jpg", "journal/honeymoon-pool.jpg", "honeymoon-pool",
+    "Couple in a plunge pool watching elephants at sunset", "50% 40%", ["stay/honeymoon-pool", "journal.generic"]],
+  ["Night sky.jpg", "texture/night-dinner.jpg", "night-dinner",
+    "Lantern-lit bush dinner under an acacia tree at night", "50% 40%", ["texture/night-dinner", "journal.generic"]],
+  ["Night sky 1.jpg", "texture/night-stars.jpg", "night-stars",
+    "Guests stargazing from an open safari vehicle under the Milky Way", "50% 30%", ["texture/night-sky", "journal.generic"]],
+  ["Museum hall.jpg", "experiences/nairobi-museum-hall.jpg", "nairobi-museum-hall",
+    "Art gallery hall inside the Nairobi National Museum", "50% 45%", ["experiences/nairobi-national-museum"]],
+  ["Guide potrait.jpg", "journal/guide-portrait.jpg", "guide-portrait",
+    "Smiling safari guide with a radio, elephants behind", "50% 35%", ["team/guide", "journal.generic"]],
 ];
-// NOTE: "Guide potrait.png" arrived as a 0-byte file and is excluded until re-sent.
+// NOTE: "Guide potrait.png" arrived as a 0-byte file and is superseded by
+// the re-sent "Guide potrait.jpg".
 
 const seen = new Set();
 for (const row of MAPPING) {
@@ -213,12 +238,21 @@ for (const [source, out, id, alt, focal, slots, credit] of MAPPING) {
   console.log(`${String(info.width).padStart(5)}x${String(info.height).padStart(5)} ${orientation.padEnd(9)} ${(info.size / 1024).toFixed(0).padStart(5)}KB :: ${out}`);
 }
 
-// Logo reference copy (unregistered: checker background baked in, needs a transparent PNG).
+// Logo copies (unregistered brand assets, used directly by the header).
+// Each source is optional: older originals may leave incoming/.
 {
-  const destPath = join(OUT, "brand", "logo-reference.jpg");
-  mkdirSync(join(destPath, ".."), { recursive: true });
-  await sharp(join(INCOMING, "African Bison Classic Tours Logo.jfif")).rotate().jpeg({ quality: 82, mozjpeg: true }).toFile(destPath);
-  console.log("logo reference copied (unregistered)");
+  const brandDir = join(OUT, "brand");
+  mkdirSync(brandDir, { recursive: true });
+  const reference = join(INCOMING, "African Bison Classic Tours Logo.jfif");
+  if (existsSync(reference)) {
+    await sharp(reference).rotate().jpeg({ quality: 82, mozjpeg: true }).toFile(join(brandDir, "logo-reference.jpg"));
+  }
+  // Transparent PNG keeps its alpha channel: resize only, never flatten.
+  const transparent = join(INCOMING, "TRANSPARENT LOGO.png");
+  if (existsSync(transparent)) {
+    await sharp(transparent).rotate().resize({ width: 1024, height: 1024, fit: "inside", withoutEnlargement: true }).png().toFile(join(brandDir, "logo.png"));
+  }
+  console.log("logo copies written (unregistered)");
 }
 
 // Hero poster: reuse the hero still until a video frame is supplied.

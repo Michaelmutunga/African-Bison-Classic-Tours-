@@ -1076,6 +1076,173 @@ export const IMAGES: ImageEntry[] = [
       "journal.generic"
     ],
     "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "lodge-deck-elephants",
+    "src": "/images/journal/lodge-deck-elephants.jpg",
+    "alt": "Lodge deck with chairs overlooking elephants at a waterhole",
+    "width": 1200,
+    "height": 1500,
+    "focal": "50% 45%",
+    "orientation": "portrait",
+    "slots": [
+      "stay/lodge-deck",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "lodge-lounge",
+    "src": "/images/journal/lodge-lounge.jpg",
+    "alt": "Tented lodge lounge with rattan lamps opening onto a deck",
+    "width": 736,
+    "height": 1308,
+    "focal": "50% 45%",
+    "orientation": "portrait",
+    "slots": [
+      "stay/lodge-lounge",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "lodge-deck-sunset",
+    "src": "/images/journal/lodge-deck-sunset.jpg",
+    "alt": "Lodge deck with loungers overlooking elephants at a waterhole at sunset",
+    "width": 768,
+    "height": 1376,
+    "focal": "50% 45%",
+    "orientation": "portrait",
+    "slots": [
+      "stay/lodge-deck-sunset",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "lodge-pool",
+    "src": "/images/journal/lodge-pool.jpg",
+    "alt": "Lodge swimming pool with loungers under acacia trees",
+    "width": 736,
+    "height": 981,
+    "focal": "50% 45%",
+    "orientation": "portrait",
+    "slots": [
+      "stay/lodge-pool",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "lodge-bedroom",
+    "src": "/images/journal/lodge-bedroom.jpg",
+    "alt": "Lodge bedroom with thatched roof opening onto a deck",
+    "width": 1024,
+    "height": 683,
+    "focal": "50% 45%",
+    "orientation": "landscape",
+    "slots": [
+      "stay/lodge-bedroom",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "honeymoon-roof",
+    "src": "/images/journal/honeymoon-roof.jpg",
+    "alt": "Couple sharing champagne on a vehicle roof deck at sunset with elephants behind",
+    "width": 1000,
+    "height": 1500,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "stay/honeymoon",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "honeymoon-dinner",
+    "src": "/images/journal/honeymoon-dinner.jpg",
+    "alt": "Private dinner with fire pit on a lodge deck at dusk",
+    "width": 736,
+    "height": 613,
+    "focal": "50% 45%",
+    "orientation": "landscape",
+    "slots": [
+      "stay/honeymoon-dinner",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "honeymoon-pool",
+    "src": "/images/journal/honeymoon-pool.jpg",
+    "alt": "Couple in a plunge pool watching elephants at sunset",
+    "width": 1200,
+    "height": 1200,
+    "focal": "50% 40%",
+    "orientation": "square",
+    "slots": [
+      "stay/honeymoon-pool",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "night-dinner",
+    "src": "/images/texture/night-dinner.jpg",
+    "alt": "Lantern-lit bush dinner under an acacia tree at night",
+    "width": 736,
+    "height": 1104,
+    "focal": "50% 40%",
+    "orientation": "portrait",
+    "slots": [
+      "texture/night-dinner",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "night-stars",
+    "src": "/images/texture/night-stars.jpg",
+    "alt": "Guests stargazing from an open safari vehicle under the Milky Way",
+    "width": 662,
+    "height": 1000,
+    "focal": "50% 30%",
+    "orientation": "portrait",
+    "slots": [
+      "texture/night-sky",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "nairobi-museum-hall",
+    "src": "/images/experiences/nairobi-museum-hall.jpg",
+    "alt": "Art gallery hall inside the Nairobi National Museum",
+    "width": 900,
+    "height": 1200,
+    "focal": "50% 45%",
+    "orientation": "portrait",
+    "slots": [
+      "experiences/nairobi-national-museum"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
+  },
+  {
+    "id": "guide-portrait",
+    "src": "/images/journal/guide-portrait.jpg",
+    "alt": "Smiling safari guide with a radio, elephants behind",
+    "width": 640,
+    "height": 640,
+    "focal": "50% 35%",
+    "orientation": "square",
+    "slots": [
+      "team/guide",
+      "journal.generic"
+    ],
+    "credit": "African Bison Classic Tours // TODO confirm credit"
   }
 ];
 // GENERATED:END
@@ -1234,6 +1401,18 @@ export const SLOT_PLAN: PlannedImage[] = [
   { file: "journal/group-serengeti-sign.jpg", slot: "journal.generic", alt: "Group of travellers posed at the Serengeti National Park entrance sign", note: "Group travel use" },
   { file: "journal/travellers-safari-2.jpg", slot: "journal.generic", alt: "Travellers enjoying a safari" },
   { file: "journal/travellers-safari-3.jpg", slot: "journal.generic", alt: "Travellers enjoying a safari" },
+  { file: "journal/lodge-deck-elephants.jpg", slot: "stay/lodge-deck", alt: "Lodge deck with chairs overlooking elephants at a waterhole" },
+  { file: "journal/lodge-lounge.jpg", slot: "stay/lodge-lounge", alt: "Tented lodge lounge with rattan lamps opening onto a deck" },
+  { file: "journal/lodge-deck-sunset.jpg", slot: "stay/lodge-deck-sunset", alt: "Lodge deck with loungers overlooking elephants at a waterhole at sunset" },
+  { file: "journal/lodge-pool.jpg", slot: "stay/lodge-pool", alt: "Lodge swimming pool with loungers under acacia trees" },
+  { file: "journal/lodge-bedroom.jpg", slot: "stay/lodge-bedroom", alt: "Lodge bedroom with thatched roof opening onto a deck" },
+  { file: "journal/honeymoon-roof.jpg", slot: "stay/honeymoon", alt: "Couple sharing champagne on a vehicle roof deck at sunset with elephants behind" },
+  { file: "journal/honeymoon-dinner.jpg", slot: "stay/honeymoon-dinner", alt: "Private dinner with fire pit on a lodge deck at dusk" },
+  { file: "journal/honeymoon-pool.jpg", slot: "stay/honeymoon-pool", alt: "Couple in a plunge pool watching elephants at sunset" },
+  { file: "texture/night-dinner.jpg", slot: "texture/night-dinner", alt: "Lantern-lit bush dinner under an acacia tree at night" },
+  { file: "texture/night-stars.jpg", slot: "texture/night-sky", alt: "Guests stargazing from an open safari vehicle under the Milky Way" },
+  { file: "experiences/nairobi-museum-hall.jpg", slot: "experiences/nairobi-national-museum", alt: "Art gallery hall inside the Nairobi National Museum", note: "Clean replacement for the watermarked hall photo" },
+  { file: "journal/guide-portrait.jpg", slot: "team/guide", alt: "Smiling safari guide with a radio, elephants behind" },
 
   // EXCLUDED from public/images (stays in incoming/, never committed):
   // - "Exhibit 1 inside the museum.jpg": third-party "Beads Safaris
@@ -1241,6 +1420,9 @@ export const SLOT_PLAN: PlannedImage[] = [
   // - "African Bison Classic Tours Logo.jfif": checkerboard background
   //   baked into pixels (JFIF has no transparency). Needs a transparent
   //   PNG export. Reference copy at images/brand/logo-reference.jpg.
-  // - "Guide potrait.png": arrived as a 0-byte file. Please re-send.
+  // - "Guide potrait.png": arrived as a 0-byte file, superseded by the
+  //   re-sent "Guide potrait.jpg".
+  // Brand assets (unregistered, used directly, never content images):
+  // - public/images/brand/logo.png: transparent PNG, alpha preserved.
 ];
 

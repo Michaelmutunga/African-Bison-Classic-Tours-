@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/states";
 import { Timeline } from "@/components/ui/timeline";
 import { NotFoundError } from "@/server/catalogue";
 import { publicTour, publicTours } from "@/lib/catalog";
+import { imageForActivity, imageForTour } from "@/lib/imagery";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
 
@@ -92,13 +93,21 @@ export default async function TourDetailPage({
           </Badge>
           <Badge>Private & tailor-made</Badge>
         </div>
-        <SafariImage
-          seed={tour.slug}
-          label={tour.title}
-          alt={`${tour.title} — photo pending`}
-          ratio="aspect-[21/9]"
-          className="mt-6"
-        />
+        {(() => {
+          const hero = imageForTour(tour.slug, tour.category.slug);
+          return (
+            <SafariImage
+              seed={tour.slug}
+              label={tour.title}
+              alt={hero?.alt ?? `${tour.title} — photo pending`}
+              src={hero?.src ?? null}
+              focal={hero?.focal}
+              ratio="aspect-[21/9]"
+              className="mt-6"
+              priority
+            />
+          );
+        })()}
         <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_22rem]">
           <div>
             <h2 className="type-h2">Overview</h2>
@@ -116,6 +125,7 @@ export default async function TourDetailPage({
                       id: `day-${day.dayNumber}`,
                       marker: `Day ${day.dayNumber}`,
                       title: day.title,
+                      image: imageForActivity(`${day.title} ${day.body}`),
                       detail: day.body.split("\n\n").map((para, i) => (
                         <p key={i} className="mt-2 first:mt-1">
                           {para}

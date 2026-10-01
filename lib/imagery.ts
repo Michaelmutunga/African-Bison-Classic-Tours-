@@ -1406,7 +1406,163 @@ export function imageForDestination(slug: string): ImageEntry | null {
 }
 
 export function imageForPost(slug: string): ImageEntry | null {
-  return imageForSlot(`posts/${slug}`);
+  const direct = imageForSlot(`posts/${slug}`);
+  if (direct) return direct;
+  // Blog has no per-post slots yet: spread posts deterministically across
+  // the neutral journal pool so cards never render empty. Alt text on these
+  // images is generic and never names a park the photo does not show.
+  const pool = imagesForSlot("journal.generic");
+  if (pool.length === 0) return null;
+  return pool[hashSlug(slug) % pool.length];
+}
+
+/**
+ * Safari-builder option imagery (cinematic builder revamp).
+ *
+ * Every value references an existing IMAGES id so tests/imagery.test.ts
+ * keeps validating src-on-disk. Keys are `${kind}:${slug}` where kind is
+ * one of region | experience | interest | comfort | transport | addon.
+ * Uganda uses the forest hillside only (bwindi-forest-3): never a gorilla
+ * close-up, and captioned as specialist-planned so the tile cannot read
+ * as an instant-bookable gorilla product.
+ */
+const BUILDER_OPTION_IMAGE_IDS: Record<string, string> = {
+  // Regions
+  "region:kenya": "mara-zebras-dusk",
+  "region:tanzania": "serengeti-river-crossing",
+  "region:kenya-tanzania": "mara-migration-descent",
+  "region:uganda": "bwindi-forest-3",
+  "region:beach": "zanzibar-island",
+  // Experiences
+  "experience:wildlife": "mara-game-drive-herd",
+  "experience:big-five": "mara-lion-vehicle",
+  "experience:migration": "migration-river-sunset",
+  "experience:family": "travellers-safari-2",
+  "experience:honeymoon": "honeymoon-roof",
+  "experience:luxury": "lodge-deck-sunset",
+  "experience:adventure": "kilimanjaro-summit",
+  "experience:culture": "bomas-dancers",
+  "experience:photography": "vehicle-guests-roof",
+  "experience:beach": "zanzibar-stone-town",
+  "experience:mountain": "kilimanjaro-mountain",
+  "experience:private": "vehicle-interior-track",
+  "experience:group": "group-serengeti-sign",
+  "experience:corporate": "travellers-safari-3",
+  // Interests
+  "interest:elephants": "amboseli-elephants-egrets",
+  "interest:big-cats": "mara-lion-pride",
+  "interest:rhino": "nakuru-wildlife-2",
+  "interest:birds": "nakuru-buffalo-flamingos",
+  "interest:scenery": "ngorongoro-crater-aerial",
+  "interest:culture": "bomas-dancers-costume",
+  "interest:photography": "vehicle-guests-roof",
+  "interest:migration": "serengeti-zebra-river",
+  "interest:beach": "zanzibar-salaam-turtles",
+  "interest:adventure": "aberdare-moorland-hikers",
+  // Comfort levels
+  "comfort:luxury": "lodge-bedroom",
+  "comfort:mid-range": "lodge-lounge",
+  "comfort:value": "bush-breakfast-table",
+  // Transport styles
+  "transport:land-cruiser": "vehicle-guests-roof",
+  "transport:safari-van": "vehicle-interior",
+  "transport:fly-in": "serengeti-gate",
+  // Add-ons (seeded slugs)
+  "addon:hot-air-balloon-safari": "balloon-basket-sunrise",
+  "addon:maasai-village-visit": "bomas-dancers",
+  "addon:lake-naivasha-boat-ride": "naivasha-boat-ride",
+  "addon:safari-photography-guide": "vehicle-interior-track",
+};
+
+export function imageForBuilderOption(kind: string, slug: string): ImageEntry | null {
+  const id = BUILDER_OPTION_IMAGE_IDS[`${kind}:${slug}`];
+  if (id) {
+    const direct = imageById(id);
+    if (direct) return direct;
+  }
+  // Keyword fallback for add-ons created later in admin without a mapping.
+  if (kind === "addon") {
+    return imageForActivity(slug.replace(/-/g, " "));
+  }
+  return null;
+}
+
+/**
+ * Activity keyword to image id. Ordered by specificity: balloon and boat
+ * first, then wildlife, culture, meals, night skies, vehicles. All targets
+ * are client photos with honest alt text; nothing here invents a sighting.
+ */
+const ACTIVITY_IMAGE_IDS: Array<{ match: RegExp; id: string }> = [
+  { match: /balloon|sunrise flight|aerial/i, id: "balloon-basket-sunrise" },
+  { match: /boat|canoe|naivasha|hippo|fish eagle/i, id: "naivasha-boat-ride" },
+  { match: /sheldrick|orphan|elephant/i, id: "sheldrick-calf-visitors" },
+  { match: /giraffe/i, id: "giraffe-hand-feeding" },
+  { match: /museum|fossil|exhibit|gallery/i, id: "nairobi-museum-entrance" },
+  { match: /bomas|traditional dance|maasai village|village visit|cultural visit|community visit/i, id: "bomas-dancers" },
+  { match: /carnivore|nyama|feast|restaurant/i, id: "carnivore-service" },
+  { match: /flamingo|nakuru|bogoria/i, id: "nakuru-buffalo-flamingos" },
+  { match: /manyara|tree.climbing|lion/i, id: "mara-lion-pride" },
+  { match: /crater|ngorongoro|caldera/i, id: "ngorongoro-crater-aerial" },
+  { match: /tarangire|baobab/i, id: "tarangire-river-elephants" },
+  { match: /migration|mara river|crossing|wildebeest|zebra/i, id: "migration-river-sunset" },
+  { match: /kilimanjaro|uhuru|summit|trek|hike|mountain|aberdare|moorland/i, id: "kilimanjaro-summit" },
+  { match: /beach|zanzibar|diani|stone town|turtle|snorkel/i, id: "zanzibar-stone-town" },
+  { match: /honeymoon|champagne|private dinner|proposal/i, id: "honeymoon-dinner" },
+  { match: /sundowner|sunset drink/i, id: "mara-sundowner" },
+  { match: /bush meal|picnic|breakfast|dinner|lunch/i, id: "mara-bush-meal" },
+  { match: /night|star|milky way/i, id: "night-stars" },
+  { match: /guide|photographer|photography/i, id: "guide-portrait" },
+  { match: /vehicle|transfer|airport|pickup|game drive|drive/i, id: "mara-game-drive-herd" },
+  { match: /lodge|camp|stay|pool|deck|tent/i, id: "lodge-deck-elephants" },
+  { match: /arrival|departure|nairobi park/i, id: "nairobi-park-drive" },
+];
+
+export function imageForActivity(text: string): ImageEntry | null {
+  const haystack = text.trim();
+  if (!haystack) return null;
+  for (const entry of ACTIVITY_IMAGE_IDS) {
+    if (entry.match.test(haystack)) {
+      const image = imageById(entry.id);
+      if (image) return image;
+    }
+  }
+  return null;
+}
+
+/**
+ * Itinerary day image: activity keywords win (balloon day shows the
+ * balloon), then the destination photo, then a neutral journal generic.
+ * One image per stop plus key-activity images keeps review pages fast and
+ * avoids repeating the same photo down a 12-day timeline.
+ */
+export function imageForItineraryDay(
+  destinationSlug: string | null,
+  activities: string[],
+  legTexts: string[],
+): ImageEntry | null {
+  for (const activity of activities) {
+    const match = imageForActivity(activity);
+    if (match) return match;
+  }
+  for (const leg of legTexts) {
+    const match = imageForActivity(leg);
+    // Arrival/departure transfer legs resolve to the vehicle image only
+    // when no stronger activity matched; skip the generic drive fallback
+    // here so destination photos still win for stay days.
+    if (match && match.id !== "mara-game-drive-herd") return match;
+  }
+  if (destinationSlug) {
+    const destination = imageForDestination(destinationSlug);
+    if (destination) return destination;
+  }
+  for (const leg of legTexts) {
+    const match = imageForActivity(leg);
+    if (match) return match;
+  }
+  const pool = imagesForSlot("journal.generic");
+  if (pool.length === 0) return null;
+  const key = `${destinationSlug ?? "generic"}:${activities.join(",")}:${legTexts.join(",")}`;
+  return pool[hashSlug(key) % pool.length];
 }
 
 /**

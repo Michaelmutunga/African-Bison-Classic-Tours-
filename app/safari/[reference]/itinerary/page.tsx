@@ -4,6 +4,7 @@ import { Timeline } from "@/components/ui/timeline";
 import { currentUser } from "@/lib/auth";
 import { requireBookingAccess } from "@/server/portal";
 import { NotFoundError } from "@/server/catalogue";
+import { imageForActivity } from "@/lib/imagery";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function ItineraryPage({
               id: `day-${day.dayNumber}`,
               marker: `Day ${day.dayNumber}`,
               title: day.title,
+              image: imageForActivity(`${day.title} ${day.body}`),
               detail: <p className="mt-1">{day.body}</p>,
             }))}
           />

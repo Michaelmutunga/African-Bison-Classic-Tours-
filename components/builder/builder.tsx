@@ -143,7 +143,7 @@ function BuilderShell({ data }: { data: BuilderStepData }) {
       <div className="mt-6">
         <StepRail />
       </div>
-      <div className="mt-8 max-w-3xl">
+      <div className="mt-8 max-w-5xl">
         <StepBody data={data} />
         <StepNav />
       </div>

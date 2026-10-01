@@ -17,6 +17,7 @@ import {
   tripDays,
   validateDraft,
 } from "@/lib/builder";
+import { imageForItineraryDay } from "@/lib/imagery";
 
 export function ReviewStep({ data }: { data: BuilderStepData }) {
   const { draft, reset } = useBuilder();
@@ -82,6 +83,11 @@ export function ReviewStep({ data }: { data: BuilderStepData }) {
                 id: `day-${day.n}`,
                 marker: `Day ${day.n} · ${day.date}`,
                 title: day.title,
+                image: imageForItineraryDay(
+                  day.destinationSlug,
+                  day.activities,
+                  day.legs.map((leg) => leg.text),
+                ),
                 detail: (
                   <>
                     {day.legs.map((leg, i) => (

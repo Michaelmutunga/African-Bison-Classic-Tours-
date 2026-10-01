@@ -5,7 +5,10 @@ import {
   IMAGES,
   SLOT_PLAN,
   imageById,
+  imageForActivity,
+  imageForBuilderOption,
   imageForDestination,
+  imageForItineraryDay,
   imageForPost,
   imageForSlot,
   imageForTour,
@@ -39,7 +42,36 @@ describe("imagery manifest", () => {
     expect(imageForSlot("no-such-slot")).toBeNull();
     expect(imageForTour("no-such-tour", "no-such-category")).toBeNull();
     expect(imageForDestination("no-such-place")).toBeNull();
-    expect(imageForPost("no-such-post")).toBeNull();
+    expect(imageForBuilderOption("region", "no-such-region")).toBeNull();
+    expect(imageForActivity("")).toBeNull();
+  });
+
+  it("gives blog posts a deterministic generic image instead of a placeholder", () => {
+    const post = imageForPost("no-such-post");
+    expect(post).not.toBeNull();
+    expect(post?.slots).toContain("journal.generic");
+    expect(imageForPost("another-post")?.id).toBe(imageForPost("another-post")?.id);
+  });
+
+  it("maps builder options to on-disk client photos", () => {
+    const picks = [
+      imageForBuilderOption("region", "kenya"),
+      imageForBuilderOption("region", "uganda"),
+      imageForBuilderOption("experience", "migration"),
+      imageForBuilderOption("comfort", "luxury"),
+      imageForBuilderOption("transport", "land-cruiser"),
+      imageForBuilderOption("addon", "hot-air-balloon-safari"),
+    ];
+    for (const pick of picks) expect(pick).not.toBeNull();
+    // Uganda uses the forest hillside, never a gorilla close-up.
+    expect(imageForBuilderOption("region", "uganda")?.id).toBe("bwindi-forest-3");
+  });
+
+  it("resolves itinerary days to activity photos before destination photos", () => {
+    const balloon = imageForItineraryDay("masai-mara", ["Hot air balloon safari"], ["Game drives"]);
+    expect(balloon?.id).toBe("balloon-basket-sunrise");
+    const mara = imageForItineraryDay("masai-mara", [], ["Game drives and activities in Maasai Mara"]);
+    expect(mara?.id).toBe("mara-zebras-dusk");
   });
 
   it("falls back to the category image for unmapped tours", () => {

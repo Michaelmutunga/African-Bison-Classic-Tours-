@@ -4,7 +4,6 @@ import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import {
   BookingError,
   TRANSITIONS,
-  bookingReference,
   cancelBooking,
   createBooking,
   createHold,
@@ -49,10 +48,15 @@ beforeAll(async () => {
 });
 
 describe("references and state machine", () => {
-  it("generates unique references", () => {
-    const refs = new Set([bookingReference(), bookingReference(), bookingReference()]);
-    expect(refs.size).toBe(3);
-    for (const ref of refs) expect(ref).toMatch(/^ABCT-\d{4}-[A-Z2-9]{6}$/);
+  it("issues dated per-day references", async () => {
+    const first = await guestBooking();
+    const second = await guestBooking();
+    for (const booking of [first, second]) {
+      expect(booking.reference).toMatch(/^ABCT-\d{4}-\d{2}-\d{2}-\d{3,}$/);
+    }
+    expect(first.reference).not.toBe(second.reference);
+    await cancelBooking(admin, first.id, "test cleanup");
+    await cancelBooking(admin, second.id, "test cleanup");
   });
 
   it("rejects illegal transitions", async () => {

@@ -870,3 +870,17 @@ model AuditLog {
   @@index([resource, resourceId])
   @@index([createdAt])
 }
+
+// ---------------------------------------------------------------------------
+// Marketplace booking references (Phase 1). One row per Nairobi calendar
+// day; the counter resets daily (NNN restarts at 001). Rows are created and
+// incremented inside the booking transaction under an advisory lock, so two
+// simultaneous submissions can never receive the same reference.
+// ---------------------------------------------------------------------------
+
+model BookingDailyCounter {
+  // Nairobi calendar date as YYYY-MM-DD (Africa/Nairobi, not UTC).
+  date      String   @id
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+}

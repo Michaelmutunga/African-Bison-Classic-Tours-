@@ -7,6 +7,7 @@ import { notify } from "@/server/notifications/dispatch";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import { ConflictError, NotFoundError, type Actor } from "@/server/catalogue";
 import { hasPermission } from "@/lib/permissions";
+import { issueBookingReference } from "@/server/booking-references";
 
 export class BookingError extends Error {
   readonly status = 422;
@@ -52,6 +53,9 @@ const CANCELLABLE: BookingStatus[] = [
 ];
 
 export function bookingReference(): string {
+  // Deprecated: marketplace refs are dated per-day counters issued by
+  // issueBookingReference() in server/booking-references.ts. Kept for
+  // backwards-compatible imports; returns a legacy-format value.
   const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let suffix = "";
   for (let i = 0; i < 6; i++) suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
@@ -461,7 +465,9 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
       try {
         const booking = await tx.booking.create({
           data: {
-            reference: bookingReference(),
+            // Dated per-day counter (Africa/Nairobi creation date), issued
+            // atomically in this transaction. Travel dates never feed it.
+            reference: await issueBookingReference(tx, now),
             userId: actor && actor.role === "CUSTOMER" ? actor.id : null,
             customerName: data.customerName,
             customerEmail: data.customerEmail.toLowerCase(),
@@ -735,10 +741,23 @@ export async function getBooking(actor: Actor | null, id: string) {
   return booking;
 }
 
-export async function listBookings(actor: Actor | null, status?: BookingStatus) {
+export async function listBookings(actor: Actor | null, status?: BookingStatus, search?: string) {
   gateStaff(actor);
+  const term = search?.trim().toUpperCase();
   return prisma.booking.findMany({
-    where: status ? { status } : undefined,
+    where: {
+      ...(status ? { status } : {}),
+      // Reference search covers dated (ABCT-YYYY-MM-DD-NNN) and legacy refs.
+      ...(term
+        ? {
+            OR: [
+              { reference: { contains: term, mode: "insensitive" } },
+              { customerName: { contains: search?.trim() ?? "", mode: "insensitive" } },
+              { customerEmail: { contains: search?.trim() ?? "", mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { createdAt: "desc" },
     take: 100,
     include: { tour: { select: { slug: true, title: true } } },

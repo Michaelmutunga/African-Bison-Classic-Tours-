@@ -23,11 +23,11 @@ const PIPELINE: BookingStatus[] = [
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; search?: string }>;
 }) {
-  const { status } = await searchParams;
+  const { status, search } = await searchParams;
   const actor = await requestActor();
-  const bookings = await listBookings(actor, (status as BookingStatus) || undefined);
+  const bookings = await listBookings(actor, (status as BookingStatus) || undefined, search);
   const grouped = new Map<string, typeof bookings>();
   for (const booking of bookings) {
     const list = grouped.get(booking.status) ?? [];
@@ -39,9 +39,27 @@ export default async function AdminBookingsPage({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="type-h3">Booking pipeline</h2>
-        <Link href="/admin/bookings" className="type-small underline underline-offset-4">
-          Clear filter
-        </Link>
+        <form method="get" role="search" className="flex items-center gap-2">
+          {status ? <input type="hidden" name="status" value={status} /> : null}
+          <label htmlFor="booking-search" className="sr-only">
+            Search by reference, name or email
+          </label>
+          <input
+            id="booking-search"
+            name="search"
+            type="search"
+            defaultValue={search ?? ""}
+            placeholder="Search reference, name, email…"
+            autoComplete="off"
+            className="type-small w-64 border border-ink/15 bg-transparent px-3 py-2 placeholder:text-ink/40 focus:border-ink/40 focus:outline-none"
+          />
+          <button type="submit" className="type-small underline underline-offset-4">
+            Search
+          </button>
+          <Link href="/admin/bookings" className="type-small underline underline-offset-4">
+            Clear filter
+          </Link>
+        </form>
       </div>
       {bookings.length === 0 ? (
         <div className="mt-4">

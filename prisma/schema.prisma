@@ -789,6 +789,189 @@ model MediaAsset {
 }
 
 // ---------------------------------------------------------------------------
+// Marketplace suppliers (Phase 2). ABCT owns no fleet and no guides: every
+// service is fulfilled by a third-party supplier locked per booking.
+// ---------------------------------------------------------------------------
+
+enum SupplierStatus {
+  ACTIVE
+  PAUSED
+  BLACKLISTED
+}
+
+// Admin-managed supplier categories (airport pickup/transfer, hotel/lodge,
+// driver-guide, vehicle hire, park/activity operator, flights, other...).
+model SupplierType {
+  id        String     @id @default(cuid())
+  slug      String     @unique
+  name      String
+  active    Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  suppliers Supplier[] @relation("SupplierTypes")
+}
+
+model Supplier {
+  id              String         @id @default(cuid())
+  name            String
+  contactPerson   String?
+  phone           String?
+  whatsapp        String?
+  email           String?
+  coverageAreas   String[]       @default([])
+  status          SupplierStatus @default(ACTIVE)
+  rating          Int?
+  notes           String?
+  paymentTerms    String?
+  // Bank/M-Pesa details, AES-256-GCM encrypted. Never returned by list/get;
+  // reveal only through revealSupplierPayout (finance roles only).
+  payoutCiphertext String?
+  // Safe display hint, e.g. "M-Pesa •••• 432".
+  payoutHint      String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  types           SupplierType[] @relation("SupplierTypes")
+  rates           SupplierRate[]
+  locks           SupplierLock[]
+  documents       SupplierDocument[]
+  payouts         SupplierPayout[]
+
+  @@index([status])
+  @@index([name])
+}
+
+model SupplierDocument {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  kind       String
+  title      String
+  url        String?
+  createdAt  DateTime @default(now())
+
+  @@index([supplierId])
+}
+
+enum RateUnit {
+  PER_VEHICLE_PER_DAY
+  PER_PERSON_PER_NIGHT
+  PER_TRANSFER
+  PER_ACTIVITY
+  PER_GROUP
+}
+
+model SupplierRate {
+  id           String    @id @default(cuid())
+  supplierId   String
+  supplier     Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  // Stable key per supplier service; new prices create a new version row.
+  serviceSlug  String
+  serviceName  String
+  // SupplierType slug (denormalized for filtering without a join).
+  serviceType  String
+  unit         RateUnit
+  currency     String    @default("USD")
+  costCents    Int
+  season       String?
+  seasonStart  String?
+  seasonEnd    String?
+  // Pax or vehicles this rate covers per unit of quantity.
+  capacity     Int?
+  validFrom    DateTime?
+  validTo      DateTime?
+  version      Int       @default(1)
+  supersedesId String?
+  supersedes   SupplierRate?  @relation("RateVersions", fields: [supersedesId], references: [id])
+  supersededBy SupplierRate[] @relation("RateVersions")
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  locks        SupplierLock[]
+
+  @@unique([supplierId, serviceSlug, version])
+  @@index([supplierId, serviceSlug])
+  @@index([serviceType])
+}
+
+enum SupplierLockStatus {
+  REQUESTED
+  HELD
+  CONFIRMED
+  DECLINED
+  RELEASED
+  COMPLETED
+}
+
+model SupplierLock {
+  id         String             @id @default(cuid())
+  supplierId String
+  supplier   Supplier           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  // Pinned rate version: confirmed bookings keep the costed rate even when
+  // the card changes later.
+  rateId     String?
+  rate       SupplierRate?      @relation(fields: [rateId], references: [id])
+  // Loose booking linkage until ServiceLine FKs land (Phase 6).
+  bookingRef String?
+  serviceRef String?
+  serviceName String
+  serviceType String
+  startsAt   DateTime
+  endsAt     DateTime
+  quantity   Int                @default(1)
+  status     SupplierLockStatus @default(REQUESTED)
+  notes      String?
+  createdById String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  tokens     SupplierToken[]
+
+  @@index([supplierId, status])
+  @@index([supplierId, startsAt, endsAt])
+  @@index([bookingRef])
+}
+
+model SupplierToken {
+  id         String       @id @default(cuid())
+  tokenHash  String       @unique
+  supplierId String
+  lockId     String?
+  lock       SupplierLock? @relation(fields: [lockId], references: [id], onDelete: Cascade)
+  purpose    String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdById String?
+  createdAt  DateTime     @default(now())
+
+  @@index([lockId])
+  @@index([expiresAt])
+}
+
+enum PayoutStatus {
+  DUE
+  PAID
+  CANCELLED
+}
+
+model SupplierPayout {
+  id         String       @id @default(cuid())
+  supplierId String
+  supplier   Supplier     @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  bookingRef String?
+  lockId     String?
+  amountCents Int
+  currency   String       @default("USD")
+  status     PayoutStatus @default(DUE)
+  dueDate    DateTime?
+  paidAt     DateTime?
+  reference  String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([supplierId, status])
+  @@index([bookingRef])
+}
+
+// ---------------------------------------------------------------------------
 // Notifications (Phase 12). The log is the outbox: every dispatch attempt
 // is recorded; duplicates collapse on dedupeKey.
 // ---------------------------------------------------------------------------

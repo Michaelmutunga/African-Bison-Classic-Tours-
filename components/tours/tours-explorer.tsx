@@ -11,8 +11,8 @@ import {
   type ShowcaseCategory,
   type ShowcaseTour,
 } from "@/components/tours/showcase";
+import { ToursDomeShowcase } from "@/components/tours/tours-dome-showcase";
 import { ToursOptionWheel } from "@/components/tours/tours-option-wheel";
-import { ToursStackReveal } from "@/components/tours/tours-stack-reveal";
 import { ButtonLink } from "@/components/ui/button";
 import { Container, SectionHeading } from "@/components/ui/layout";
 
@@ -80,7 +80,7 @@ export function ToursExplorer({
       />
 
       {filtered.length > 0 ? (
-        <ToursStackReveal
+        <ToursDomeShowcase
           key={active}
           tours={filtered}
           activeLabel={activeLabel}

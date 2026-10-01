@@ -1,10 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { ToursDomeShowcase } from "@/components/tours/tours-dome-showcase";
 import { ToursExplorer } from "@/components/tours/tours-explorer";
 import { ToursMaskedHero } from "@/components/tours/tours-masked-hero";
 import { ToursOptionWheel } from "@/components/tours/tours-option-wheel";
-import { ToursStackReveal } from "@/components/tours/tours-stack-reveal";
 import type { ShowcaseCategory, ShowcaseTour } from "@/components/tours/showcase";
 
 // This jsdom setup has no browser APIs yet: stub the two that motion
@@ -45,6 +45,22 @@ function installBrowserStubs() {
 }
 installBrowserStubs();
 
+// jsdom has no pointer capture; the drag engine calls it on pointerdown.
+if (typeof Element.prototype.setPointerCapture !== "function") {
+  Object.defineProperty(Element.prototype, "setPointerCapture", {
+    writable: true,
+    configurable: true,
+    value: () => undefined,
+  });
+}
+if (typeof Element.prototype.releasePointerCapture !== "function") {
+  Object.defineProperty(Element.prototype, "releasePointerCapture", {
+    writable: true,
+    configurable: true,
+    value: () => undefined,
+  });
+}
+
 const categories: ShowcaseCategory[] = [
   { slug: "kenya", label: "Kenya", count: 2 },
   { slug: "tanzania", label: "Tanzania", count: 1 },
@@ -63,7 +79,7 @@ function tour(
     categoryLabel,
     durationDays,
     excerpt: "A real itinerary excerpt.",
-    image: null,
+    image: { src: `/images/${slug}.jpg`, alt: `Tour ${slug}`, focal: "50% 40%" },
   };
 }
 
@@ -161,27 +177,60 @@ describe("ToursOptionWheel", () => {
   });
 });
 
-describe("ToursStackReveal", () => {
-  const deck = [tours[0], tours[1]];
-
-  it("shows the front journey with a working itinerary link", () => {
-    render(<ToursStackReveal tours={deck} activeLabel="Kenya" />);
-    expect(screen.getByText("01 / 02")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "View itinerary: Tour mara" }),
-    ).toHaveAttribute("href", "/tours/mara");
+describe("ToursDomeShowcase", () => {
+  // jsdom has no layout: every rect is zero, which the gallery treats as
+  // "cannot measure, bail out". Stub measurable rects so tiles can open.
+  const rect = {
+    x: 0,
+    y: 0,
+    left: 0,
+    top: 0,
+    right: 100,
+    bottom: 100,
+    width: 100,
+    height: 100,
+    toJSON: () => ({}),
+  };
+  Object.defineProperty(Element.prototype, "getBoundingClientRect", {
+    writable: true,
+    configurable: true,
+    value: () => rect,
   });
 
-  it("brings the back card forward on previous", async () => {
-    const user = userEvent.setup();
-    render(<ToursStackReveal tours={deck} activeLabel="Kenya" />);
-    await user.click(
-      screen.getByRole("button", { name: "Bring back card to front" }),
-    );
-    expect(screen.getByText("02 / 02")).toBeInTheDocument();
+  it("lays every journey on the dome with honest labels", () => {
+    render(<ToursDomeShowcase tours={tours} activeLabel="Kenya" />);
     expect(
-      screen.getByRole("link", { name: "View itinerary: Tour amboseli" }),
+      screen.getByRole("heading", { level: 2, name: "Step inside kenya" }),
     ).toBeInTheDocument();
+    const maraTiles = screen.getAllByRole("button", {
+      name: "Tour mara, 3 days. Open preview",
+    });
+    expect(maraTiles.length).toBeGreaterThan(0);
+  });
+
+  it("opens a preview with a working itinerary link and closes on Escape", async () => {
+    const user = userEvent.setup();
+    render(<ToursDomeShowcase tours={tours} activeLabel="Kenya" />);
+    const tile = screen.getAllByRole("button", {
+      name: "Tour mara, 3 days. Open preview",
+    })[0];
+    await user.click(tile);
+    const link = await screen.findByRole("link", { name: "View itinerary →" });
+    expect(link).toHaveAttribute("href", "/tours/mara");
+    // The open guard ignores closes within 250ms of opening.
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await user.keyboard("{Escape}");
+    expect(
+      screen.queryByRole("link", { name: "View itinerary →" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders nothing without photography", () => {
+    const imageless = tours.map((tour) => ({ ...tour, image: null }));
+    const { container } = render(
+      <ToursDomeShowcase tours={imageless} activeLabel="Kenya" />,
+    );
+    expect(container).toBeEmptyDOMElement();
   });
 });
 

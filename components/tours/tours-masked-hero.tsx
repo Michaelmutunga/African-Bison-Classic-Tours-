@@ -15,11 +15,11 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 /**
  * Masked Heading hero for /tours.
  *
- * Two masks work together: each headline line sits in an overflow-hidden
- * mask and rises into view, while a giant decorative word behind the copy
- * is masked the other way, the savannah photograph clipped inside the
- * letterforms. The decorative word is aria-hidden; the real h1 stays
- * solid ivory so it never depends on the photo for contrast.
+ * The headline is the mask: each line rises out of an overflow-hidden
+ * mask while the savannah photograph is clipped inside the letterforms
+ * themselves. Calm connections, reduced motion or a missing photograph
+ * fall back to solid ivory type, and the scrim behind keeps the fill
+ * readable. Real text stays in the DOM throughout.
  */
 export function ToursMaskedHero({
   image,
@@ -46,7 +46,13 @@ export function ToursMaskedHero({
     <h1 className="type-mega max-w-5xl text-balance">
       {LINES.map((line, index) => (
         <span key={line} className="block overflow-hidden pb-[0.06em]">
-          <MaskedLine text={line} index={index} calm={calm} accent={index === 1} />
+          <MaskedLine
+            text={line}
+            index={index}
+            calm={calm}
+            image={image}
+            accent={index === 1}
+          />
         </span>
       ))}
     </h1>
@@ -76,24 +82,6 @@ export function ToursMaskedHero({
             aria-hidden="true"
           />
         </>
-      ) : null}
-
-      {/* Decorative image-masked word: photo clipped inside the type. */}
-      {image && !calm ? (
-        <span
-          aria-hidden="true"
-          className="type-mega pointer-events-none absolute -bottom-6 left-0 w-full overflow-hidden text-center whitespace-nowrap opacity-60 select-none sm:-bottom-10"
-          style={{
-            backgroundImage: `url(${image.src})`,
-            backgroundSize: "cover",
-            backgroundPosition: image.focal,
-            backgroundClip: "text",
-            WebkitBackgroundClip: "text",
-            color: "transparent",
-          }}
-        >
-          Africa
-        </span>
       ) : null}
 
       <Container className="relative pt-10 pb-16 sm:pt-14 sm:pb-24">
@@ -146,11 +134,11 @@ export function ToursMaskedHero({
             Choose your safari
           </ButtonLink>
           <ButtonLink
-            href="#featured"
+            href="#dome"
             size="lg"
             className="border border-ivory/30 text-ivory hover:border-ivory hover:bg-ivory/10"
           >
-            Featured journeys
+            Enter the dome
           </ButtonLink>
         </div>
       </Container>
@@ -162,14 +150,19 @@ function MaskedLine({
   text,
   index,
   calm,
+  image,
   accent,
 }: {
   text: string;
   index: number;
   calm: boolean;
+  image: ShowcaseImage | null;
   accent: boolean;
 }) {
-  if (calm) {
+  // Photo-filled letterforms. The scrim behind the copy keeps the fill
+  // readable; a soft drop shadow lifts the strokes off the background.
+  const masked = !calm && image !== null;
+  if (!masked) {
     return (
       <span className={cn(accent && "text-sand italic")}>{text}</span>
     );
@@ -177,7 +170,16 @@ function MaskedLine({
   return (
     <LazyMotion features={domAnimation}>
       <m.span
-        className={cn("block will-change-transform", accent && "text-sand italic")}
+        className={cn("block will-change-transform", accent && "italic")}
+        style={{
+          backgroundImage: `url(${image.src})`,
+          backgroundSize: "cover",
+          backgroundPosition: image.focal,
+          backgroundClip: "text",
+          WebkitBackgroundClip: "text",
+          color: "transparent",
+          filter: "drop-shadow(0 2px 18px rgb(14 13 11 / 0.45))",
+        }}
         initial={{ y: "110%" }}
         animate={{ y: "0%" }}
         transition={{ duration: 0.9, delay: 0.15 + index * 0.12, ease: EASE }}

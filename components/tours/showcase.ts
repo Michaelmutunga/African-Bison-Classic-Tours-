@@ -123,21 +123,6 @@ export function wheelIndexForSlug(slugs: string[], slug: string): number {
   return found === -1 ? 0 : found;
 }
 
-/**
- * Migration content carries escaped entities (e.g. `&amp;` in tour
- * titles from data/content/tours.json). Decode the common ones at the
- * display boundary so listings read cleanly. Scoped to the tours
- * showcase; the stored source is fixed separately.
- */
-export function decodeShowcaseText(value: string): string {
-  return value
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
-}
-
 /** Clamp an index into range using modular arithmetic. */
 export function clampWheelIndex(index: number, total: number): number {
   if (total <= 0) return 0;

@@ -3,7 +3,6 @@ import { JsonLd } from "@/components/json-ld";
 import { ToursExplorer } from "@/components/tours/tours-explorer";
 import { ToursMaskedHero } from "@/components/tours/tours-masked-hero";
 import type { ShowcaseTour } from "@/components/tours/showcase";
-import { decodeShowcaseText } from "@/components/tours/showcase";
 import { deriveCategories, getPublishedTours, summarizeTours } from "@/lib/catalog";
 import { imageForSlot, imageForTourUnique } from "@/lib/imagery";
 
@@ -40,11 +39,11 @@ export default async function ToursPage({
     const image = imageForTourUnique(tour.slug, tour.categorySlug, used);
     return {
       slug: tour.slug,
-      title: decodeShowcaseText(tour.title),
+      title: tour.title,
       categorySlug: tour.categorySlug,
-      categoryLabel: decodeShowcaseText(tour.categoryLabel),
+      categoryLabel: tour.categoryLabel,
       durationDays: tour.durationDays,
-      excerpt: decodeShowcaseText(tour.excerpt),
+      excerpt: tour.excerpt,
       image: image
         ? { src: image.src, alt: image.alt, focal: image.focal }
         : null,

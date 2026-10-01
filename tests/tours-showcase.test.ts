@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   bringStackToFront,
   clampWheelIndex,
-  decodeShowcaseText,
   durationRange,
   filterShowcaseTours,
   identityStackOrder,
@@ -47,13 +46,6 @@ describe("filterShowcaseTours", () => {
 
   it("returns an empty list for an unknown region", () => {
     expect(filterShowcaseTours(tours, "nope")).toHaveLength(0);
-  });
-});
-
-describe("decodeShowcaseText", () => {
-  it("decodes entities carried over by the content migration", () => {
-    expect(decodeShowcaseText("Kenya &amp; Tanzania")).toBe("Kenya & Tanzania");
-    expect(decodeShowcaseText("plain title")).toBe("plain title");
   });
 });
 

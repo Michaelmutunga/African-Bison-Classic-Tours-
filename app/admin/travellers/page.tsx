@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { FilterBar, SearchInput } from "@/components/admin/filter-bar";
+import { Badge } from "@/components/ui/badge";
 import { DataTable, TableBody, TableCell, TableHead, TableHeaderCell } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/states";
 import { listTravellers } from "@/server/operations";
@@ -14,17 +16,10 @@ export default async function TravellersPage({
   const { search } = await searchParams;
   const travellers = await listTravellers(await requestActor(), { search: search || undefined });
   return (
-    <div>
-      <h2 className="type-h3">Travellers ({travellers.length})</h2>
-      <form method="get" className="type-small mt-2 flex gap-2" aria-label="Search travellers">
-        <input
-          name="search"
-          defaultValue={search ?? ""}
-          placeholder="Search by name…"
-          className="rounded-[2px] border border-ink/20 bg-ivory px-3 py-1.5"
-        />
-        <button type="submit" className="cursor-pointer underline underline-offset-4">Search</button>
-      </form>
+    <div className="grid gap-4">
+      <FilterBar title="Travellers" count={travellers.length}>
+        <SearchInput label="Search travellers" defaultValue={search ?? ""} placeholder="Search by name…" />
+      </FilterBar>
       {travellers.length === 0 ? (
         <div className="mt-4">
           <EmptyState title="No travellers found" description="Travellers appear once added to bookings." />
@@ -43,7 +38,11 @@ export default async function TravellersPage({
                 <tr key={traveller.id}>
                   <TableCell>{traveller.fullName}</TableCell>
                   <TableCell>{traveller.kind}</TableCell>
-                  <TableCell>{traveller.passportNumber ? "On file" : "Pending"}</TableCell>
+                  <TableCell>
+                    <Badge tone={traveller.passportNumber ? "earth" : "sand"}>
+                      {traveller.passportNumber ? "On file" : "Pending"}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     <Link href={`/admin/bookings/${traveller.bookingId}`} className="underline underline-offset-4">
                       {traveller.booking.reference}

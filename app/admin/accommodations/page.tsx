@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/admin/filter-bar";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, TableBody, TableCell, TableHead, TableHeaderCell } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/states";
@@ -12,10 +13,10 @@ export default async function AccommodationsPage() {
   const canWrite = hasPermission(user?.role, "catalogue.write");
   const stays = await listAccommodations();
   return (
-    <div>
-      <h2 className="type-h3">Accommodation ({stays.length})</h2>
-      <p className="type-small mt-1 text-ink/70">
-        Properties, room types and board basis. {canWrite ? "Manage via POST/PATCH /api/admin/accommodations." : "Read-only for your role."}
+    <div className="grid gap-4">
+      <FilterBar title="Accommodation" count={stays.length} />
+      <p className="type-small text-ink/70">
+        Properties, room types and board basis. {canWrite ? "Managed through the catalogue API." : "Read-only for your role."}
       </p>
       {stays.length === 0 ? (
         <div className="mt-4">

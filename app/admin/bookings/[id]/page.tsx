@@ -12,9 +12,11 @@ import {
   TransferStatus,
   UnassignButton,
 } from "@/components/admin/booking-workspace";
-import { Badge } from "@/components/ui/badge";
+import { DetailHeader } from "@/components/admin/detail-header";
+import { MoneyDual } from "@/components/finance/money-dual";
 import { Card, CardBody } from "@/components/ui/card";
 import { formatMoney } from "@/lib/money";
+import { getDisplayCurrency } from "@/lib/display-currency";
 import { getBooking } from "@/server/bookings";
 import { TRANSITIONS } from "@/server/bookings";
 import { listGuides, listInternalNotes, listVehicles } from "@/server/operations";
@@ -52,18 +54,22 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
     where: { bookingId: id },
     include: { guide: true },
   });
+  const displayCurrency = await getDisplayCurrency();
+  const kesRate = await prisma.currencyRate
+    .findUnique({ where: { currency: "KES" } })
+    .catch(() => null);
+  const rate = kesRate
+    ? { rateToBase: Number(kesRate.rateToBase), asOf: kesRate.asOf.toISOString() }
+    : null;
 
   return (
     <div className="grid gap-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <p className="type-label text-clay-deep">{booking.reference}</p>
-          <h2 className="type-h2 mt-1">
-            {booking.customerName} · {booking.tour?.title ?? "Custom journey"}
-          </h2>
-        </div>
-        <Badge tone="sand">{booking.status.replaceAll("_", " ")}</Badge>
-      </div>
+      <DetailHeader
+        eyebrow={booking.reference}
+        title={`${booking.customerName} · ${booking.tour?.title ?? "Custom journey"}`}
+        status={booking.status}
+        meta={`Party of ${booking.adults + booking.children + booking.infants} · ${booking.customerEmail}`}
+      />
 
       <Card>
         <CardBody>
@@ -72,8 +78,9 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
             <StatusButtons bookingId={booking.id} next={TRANSITIONS[booking.status]} />
           </div>
           <dl className="type-small mt-3 grid gap-1 text-ink/75 sm:grid-cols-2">
-            <div className="flex justify-between gap-2"><dt>Total</dt><dd className="type-numeric">{formatMoney(booking.totalCents, booking.currency)}</dd></div>
+            <div className="flex justify-between gap-2"><dt>Total</dt><dd className="type-numeric"><MoneyDual amountCents={booking.totalCents} currency={booking.currency} displayCurrency={displayCurrency} rate={rate} /></dd></div>
             <div className="flex justify-between gap-2"><dt>Paid</dt><dd className="type-numeric">{formatMoney(booking.paidCents, booking.currency)}</dd></div>
+            <div className="flex justify-between gap-2"><dt>Balance</dt><dd className="type-numeric"><MoneyDual amountCents={Math.max(0, booking.totalCents - booking.paidCents)} currency={booking.currency} displayCurrency={displayCurrency} rate={rate} /></dd></div>
             <div className="flex justify-between gap-2"><dt>Party</dt><dd>{booking.adults + booking.children + booking.infants}</dd></div>
             <div className="flex justify-between gap-2"><dt>Contact</dt><dd>{booking.customerEmail}</dd></div>
           </dl>

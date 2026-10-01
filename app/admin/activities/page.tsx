@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/admin/filter-bar";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, TableBody, TableCell, TableHead, TableHeaderCell } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/states";
@@ -13,10 +14,10 @@ export default async function ActivitiesPage() {
   const canWrite = hasPermission(user?.role, "catalogue.write");
   const activities = await listActivities(false);
   return (
-    <div>
-      <h2 className="type-h3">Activities ({activities.length})</h2>
-      <p className="type-small mt-1 text-ink/70">
-        {canWrite ? "Manage via POST/PATCH /api/admin/activities." : "Read-only for your role."}
+    <div className="grid gap-4">
+      <FilterBar title="Activities" count={activities.length} />
+      <p className="type-small text-ink/70">
+        {canWrite ? "Priced add-ons (balloon, village visits, boat rides). Managed through the catalogue API." : "Read-only for your role."}
       </p>
       {activities.length === 0 ? (
         <div className="mt-4">

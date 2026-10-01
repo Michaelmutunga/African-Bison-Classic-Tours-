@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { InquiryForm } from "@/components/inquiry-form";
 import { publicTour } from "@/lib/catalog";
+import { SITE_CONTACT } from "@/lib/site-contact";
 import { MarketingShell } from "@/components/marketing-shell";
 import { Card, CardBody } from "@/components/ui/card";
 
@@ -43,22 +44,18 @@ export default async function ContactPage({
           <CardBody>
             <address className="type-small not-italic">
               <p className="type-h3">African Bison Classic Tours</p>
-              <p className="mt-2">JKIA Airport, 1st Floor, Suite 1, Nairobi, Kenya</p>
+              <p className="mt-2">{SITE_CONTACT.addressLines.join(", ")}</p>
               <p className="mt-2">
-                <a href="tel:+254734466432" className="underline underline-offset-4">
-                  +254 734 466 432
-                </a>
-                <br />
-                <a href="tel:+254111234567" className="underline underline-offset-4">
-                  +254 111 234 567
+                <a href={SITE_CONTACT.phoneHref} className="underline underline-offset-4">
+                  {SITE_CONTACT.phoneDisplay}
                 </a>
               </p>
               <p className="mt-1">
                 <a
-                  href="mailto:info@africanbisonclassictours.com"
+                  href={`mailto:${SITE_CONTACT.email}`}
                   className="underline underline-offset-4"
                 >
-                  info@africanbisonclassictours.com
+                  {SITE_CONTACT.email}
                 </a>
               </p>
             </address>

@@ -1,8 +1,12 @@
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
+import { DetailHeader } from "@/components/admin/detail-header";
+import { MoneyDual } from "@/components/finance/money-dual";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { DataTable, TableBody, TableCell, TableHead, TableHeaderCell } from "@/components/ui/table";
 import { formatMoney } from "@/lib/money";
+import { getDisplayCurrency } from "@/lib/display-currency";
+import { prisma } from "@/lib/prisma";
 import { getQuote } from "@/server/pricing";
 import { requestActor } from "@/server/http";
 import { NotFoundError } from "@/server/catalogue";
@@ -22,13 +26,29 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
     resolved?: { seasonSlug?: string | null };
     totals?: { subtotalCents?: number; discountCents?: number; totalCents?: number; depositCents?: number };
   } | null;
+  const displayCurrency = await getDisplayCurrency();
+  const kesRate = await prisma.currencyRate
+    .findUnique({ where: { currency: "KES" } })
+    .catch(() => null);
+  const rate = kesRate
+    ? { rateToBase: Number(kesRate.rateToBase), asOf: kesRate.asOf.toISOString() }
+    : null;
 
   return (
     <div className="grid max-w-3xl gap-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="type-h3">{quote.number}</h2>
-        <Badge tone="sand">{quote.status}</Badge>
-      </div>
+      <DetailHeader
+        eyebrow="Quote"
+        title={quote.number}
+        status={quote.status}
+        meta={`${quote.customerEmail ?? quote.customerName ?? "No customer"} · valid until ${new Date(quote.validUntil).toLocaleDateString("en-GB")}`}
+        actions={
+          quote.status === "ACCEPTED" ? (
+            <ButtonLink href={`/admin/bookings?status=QUOTE_SENT`} size="sm" variant="secondary">
+              Open pipeline
+            </ButtonLink>
+          ) : undefined
+        }
+      />
       <Card>
         <CardBody>
           <dl className="type-small grid gap-1">
@@ -61,11 +81,20 @@ export default async function QuoteDetailPage({ params }: { params: Promise<{ id
       <p className="type-small text-ink/70">
         Subtotal {formatMoney(quote.subtotalCents, quote.currency)} · discount{" "}
         {formatMoney(quote.discountCents, quote.currency)} · total{" "}
-        <strong className="type-numeric">{formatMoney(quote.totalCents, quote.currency)}</strong> · deposit{" "}
-        {formatMoney(quote.depositCents, quote.currency)}
+        <strong className="type-numeric">
+          <MoneyDual
+            amountCents={quote.totalCents}
+            currency={quote.currency}
+            displayCurrency={displayCurrency}
+            rate={rate}
+          />
+        </strong>{" "}
+        · deposit {formatMoney(quote.depositCents, quote.currency)}
       </p>
       <p className="type-caption text-ink/60">
-        Status changes via PATCH /api/admin/quotes/{quote.id} — transitions are validated server-side.
+        Billed in {quote.currency}. KES is an indicative display conversion only; converting the
+        billed currency requires a new quote via the pricing engine. Convert via
+        POST /api/admin/bookings from an accepted quote.
       </p>
     </div>
   );

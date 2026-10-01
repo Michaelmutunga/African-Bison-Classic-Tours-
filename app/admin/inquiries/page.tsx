@@ -1,3 +1,4 @@
+import { FilterBar } from "@/components/admin/filter-bar";
 import { Badge } from "@/components/ui/badge";
 import { DataTable, TableBody, TableCell, TableHead, TableHeaderCell } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/states";
@@ -16,10 +17,10 @@ export default async function InquiriesPage() {
     take: 100,
   });
   return (
-    <div>
-      <h2 className="type-h3">Enquiries ({inquiries.length})</h2>
-      <p className="type-small mt-1 text-ink/70">
-        Status moves via PATCH /api/admin/inquiries/:id — convert strong ones into quotes.
+    <div className="grid gap-4">
+      <FilterBar title="Enquiries" count={inquiries.length} />
+      <p className="type-small text-ink/70">
+        {inquiries.length >= 100 ? "Showing latest 100. " : ""}Advance status from the enquiry workflow, then convert strong ones into quotes.
       </p>
       {inquiries.length === 0 ? (
         <div className="mt-4">

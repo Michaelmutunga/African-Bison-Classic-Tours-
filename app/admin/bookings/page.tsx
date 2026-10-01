@@ -1,7 +1,12 @@
 import Link from "next/link";
+import { FilterBar, StatusTabs } from "@/components/admin/filter-bar";
+import { MoneyDual } from "@/components/finance/money-dual";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/states";
+import { formatMoney } from "@/lib/money";
+import { getDisplayCurrency } from "@/lib/display-currency";
+import { prisma } from "@/lib/prisma";
 import { listBookings } from "@/server/bookings";
 import { requestActor } from "@/server/http";
 import type { BookingStatus } from "@prisma/client";
@@ -10,6 +15,8 @@ export const dynamic = "force-dynamic";
 
 const PIPELINE: BookingStatus[] = [
   "INQUIRY",
+  "QUOTE_DRAFT",
+  "QUOTE_SENT",
   "HOLD",
   "AWAITING_DEPOSIT",
   "CONFIRMED",
@@ -18,6 +25,8 @@ const PIPELINE: BookingStatus[] = [
   "COMPLETED",
   "CANCELLED",
   "EXPIRED",
+  "REFUND_PENDING",
+  "REFUNDED",
 ];
 
 export default async function AdminBookingsPage({
@@ -27,7 +36,16 @@ export default async function AdminBookingsPage({
 }) {
   const { status } = await searchParams;
   const actor = await requestActor();
-  const bookings = await listBookings(actor, (status as BookingStatus) || undefined);
+  const [bookings, displayCurrency] = await Promise.all([
+    listBookings(actor, (status as BookingStatus) || undefined),
+    getDisplayCurrency(),
+  ]);
+  const kesRate = await prisma.currencyRate
+    .findUnique({ where: { currency: "KES" } })
+    .catch(() => null);
+  const rate = kesRate
+    ? { rateToBase: Number(kesRate.rateToBase), asOf: kesRate.asOf.toISOString() }
+    : null;
   const grouped = new Map<string, typeof bookings>();
   for (const booking of bookings) {
     const list = grouped.get(booking.status) ?? [];
@@ -36,22 +54,29 @@ export default async function AdminBookingsPage({
   }
 
   return (
-    <div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="type-h3">Booking pipeline</h2>
-        <Link href="/admin/bookings" className="type-small underline underline-offset-4">
-          Clear filter
-        </Link>
-      </div>
+    <div className="grid gap-4">
+      <FilterBar title="Booking pipeline" count={bookings.length}>
+        <StatusTabs
+          options={[
+            { value: null, label: "All" },
+            ...PIPELINE.map((stage) => ({
+              value: stage as string,
+              label: stage.replaceAll("_", " "),
+            })),
+          ]}
+        />
+      </FilterBar>
       {bookings.length === 0 ? (
-        <div className="mt-4">
-          <EmptyState title="No bookings" description="Nothing in this view yet." />
-        </div>
+        <EmptyState
+          title="No bookings"
+          description={status ? "Nothing with this status. Clear the filter to see everything." : "New enquiries and reservations will land here."}
+        />
       ) : (
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="grid items-start gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {PIPELINE.map((stage) => {
             const cards = grouped.get(stage) ?? [];
             if (status && stage !== status) return null;
+            if (cards.length === 0 && status !== stage) return null;
             return (
               <section key={stage} aria-label={`${stage} bookings`}>
                 <h3 className="type-label text-ink/60">
@@ -61,17 +86,28 @@ export default async function AdminBookingsPage({
                   {cards.map((booking) => (
                     <Card key={booking.id}>
                       <CardBody className="p-4">
-                        <Link
-                          href={`/admin/bookings/${booking.id}`}
-                          className="type-small font-semibold hover:text-clay-deep"
-                        >
-                          {booking.reference}
-                        </Link>
+                        <div className="flex items-baseline justify-between gap-2">
+                          <Link
+                            href={`/admin/bookings/${booking.id}`}
+                            className="type-small font-semibold hover:text-clay-deep"
+                          >
+                            {booking.reference}
+                          </Link>
+                          <span className="type-caption type-numeric text-ink/70">
+                            <MoneyDual
+                              amountCents={Math.max(0, booking.totalCents - booking.paidCents)}
+                              currency={booking.currency}
+                              displayCurrency={displayCurrency}
+                              rate={rate}
+                            />
+                          </span>
+                        </div>
                         <p className="type-caption mt-0.5 text-ink/65">
                           {booking.customerName} · {booking.adults + booking.children + booking.infants} pax
                         </p>
-                        <p className="mt-1">
+                        <p className="mt-1 flex flex-wrap gap-1.5">
                           <Badge tone="neutral">{booking.tour?.title ?? "Custom"}</Badge>
+                          <Badge tone="sand">{formatMoney(booking.totalCents, booking.currency)}</Badge>
                         </p>
                       </CardBody>
                     </Card>

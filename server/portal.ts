@@ -80,7 +80,10 @@ export async function listMyBookings(user: SafeUser | null) {
   return prisma.booking.findMany({
     where: { OR: [{ userId: user.id }, { customerEmail: user.email }] },
     orderBy: { createdAt: "desc" },
-    include: { tour: { select: { slug: true, title: true } } },
+    include: {
+      tour: { select: { slug: true, title: true } },
+      travellers: { select: { id: true, passportNumber: true, nationality: true } },
+    },
   });
 }
 

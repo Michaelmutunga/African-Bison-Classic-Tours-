@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { Prisma, type BookingStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, SUPPORTED_CURRENCIES } from "@/lib/money";
 import { notify } from "@/server/notifications/dispatch";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import { ConflictError, NotFoundError, type Actor } from "@/server/catalogue";
@@ -90,7 +90,7 @@ export const bookingInput = z.object({
   adults: z.number().int().min(1).max(18).default(1),
   children: z.number().int().min(0).max(18).default(0),
   infants: z.number().int().min(0).max(6).default(0),
-  currency: z.string().trim().length(3).default("USD"),
+  currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
   // Staff-entered commercial terms when no quote is attached.
   subtotalCents: z.number().int().min(0).default(0),
   discountCents: z.number().int().min(0).default(0),

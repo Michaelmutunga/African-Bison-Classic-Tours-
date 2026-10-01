@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Textarea } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
+import { formatMoney, minorUnitsPerMajor } from "@/lib/money";
 
 import { ErrorState, Spinner } from "@/components/ui/states";
 
@@ -266,16 +267,17 @@ export function MessageReply({ bookingId }: { bookingId: string }) {
 export function RefundButton({ paymentId, maxCents, currency }: { paymentId: string; maxCents: number; currency: string }) {
   const { error, busy, run } = useAction();
   const [amount, setAmount] = useState("");
+  const factor = minorUnitsPerMajor(currency);
   return (
     <span className="inline-flex flex-wrap items-center gap-2">
       {error ? <span className="type-caption text-clay-deep">{error}</span> : null}
       <Input
         aria-label="Refund amount in major units"
         inputMode="decimal"
-        placeholder={`max ${maxCents / 100} ${currency}`}
+        placeholder={`max ${formatMoney(maxCents, currency)}`}
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
-        className="!w-36"
+        className="!w-44"
       />
       <Button
         variant="secondary"
@@ -284,7 +286,7 @@ export function RefundButton({ paymentId, maxCents, currency }: { paymentId: str
         onClick={() =>
           run(() =>
             api(`/api/admin/payments/${paymentId}/refund`, "POST", {
-              amountCents: Math.round(Number(amount) * 100),
+              amountCents: Math.round(Number(amount) * factor),
             }),
           )
         }

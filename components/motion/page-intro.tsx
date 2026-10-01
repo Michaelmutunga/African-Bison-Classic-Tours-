@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { m } from "motion/react";
 import type { ReactNode } from "react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
 
@@ -18,7 +18,7 @@ export function PageIntro({
   const reduced = usePrefersReducedMotion();
   if (reduced) return <div className={className}>{children}</div>;
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <m.div
         className={className}
         initial={{ opacity: 0, y: 24 }}
@@ -27,7 +27,7 @@ export function PageIntro({
       >
         {children}
       </m.div>
-    </LazyMotion>
+    </>
   );
 }
 
@@ -42,7 +42,7 @@ export function PageIntroMedia({
   const reduced = usePrefersReducedMotion();
   if (reduced) return <div className={className}>{children}</div>;
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <m.div
         className={className}
         initial={{ scale: 1.08 }}
@@ -51,6 +51,6 @@ export function PageIntroMedia({
       >
         {children}
       </m.div>
-    </LazyMotion>
+    </>
   );
 }

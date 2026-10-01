@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { m } from "motion/react";
 import { useEffect, useState } from "react";
 import { useMounted, usePrefersReducedMotion } from "@/components/motion/use-calm";
 
@@ -58,7 +58,7 @@ export function WelcomeIntro() {
   };
 
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <m.div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-night"
@@ -104,6 +104,6 @@ export function WelcomeIntro() {
           <p className="type-eyebrow text-sand">African Bison Classic Tours</p>
         </m.div>
       </m.div>
-    </LazyMotion>
+    </>
   );
 }

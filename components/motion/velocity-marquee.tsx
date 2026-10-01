@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  LazyMotion,
-  domAnimation,
   m,
   useAnimationFrame,
   useMotionValue,
@@ -54,7 +52,7 @@ export function VelocityMarquee({ items, label }: { items: string[]; label: stri
   }
 
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <div aria-label={label} className="overflow-hidden border-y border-ivory/10 bg-night py-5 text-ivory">
         <m.div className="flex w-max" style={{ x, skewX: skewed }} aria-hidden="true">
           {[0, 1].map((half) => (
@@ -71,6 +69,6 @@ export function VelocityMarquee({ items, label }: { items: string[]; label: stri
           ))}
         </m.div>
       </div>
-    </LazyMotion>
+    </>
   );
 }

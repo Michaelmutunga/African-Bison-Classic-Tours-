@@ -46,6 +46,8 @@ export function SafariImage({
           alt={alt}
           fill
           priority={priority}
+          loading={priority ? undefined : "lazy"}
+          decoding="async"
           sizes={sizes ?? "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 40vw"}
           style={{ objectPosition: focal }}
           className="object-cover"

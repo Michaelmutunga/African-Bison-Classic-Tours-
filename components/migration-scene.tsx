@@ -23,11 +23,35 @@ export function MigrationScene({
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
+  // Defer the ~9MB self-hosted clip until the frame nears the viewport so
+  // initial navigation never pays for it. Poster shows meanwhile.
+  const [videoReady, setVideoReady] = useState(false);
+
+  useEffect(() => {
+    if (calm || videoReady) return;
+    const frame = frameRef.current;
+    if (!frame) return;
+    if (typeof IntersectionObserver === "undefined") {
+      const fallback = window.setTimeout(() => setVideoReady(true), 0);
+      return () => window.clearTimeout(fallback);
+    }
+    const preload = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVideoReady(true);
+          preload.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px" },
+    );
+    preload.observe(frame);
+    return () => preload.disconnect();
+  }, [calm, videoReady]);
 
   // Pause when offscreen or the tab hides; resume only when the visitor
   // never asked to pause.
   useEffect(() => {
-    if (calm) return;
+    if (calm || !videoReady) return;
     const video = videoRef.current;
     const frame = frameRef.current;
     if (!video || !frame) return;
@@ -50,7 +74,7 @@ export function MigrationScene({
       observer.disconnect();
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [calm, paused]);
+  }, [calm, paused, videoReady]);
 
   return (
     <section aria-label="The great migration" className="bg-earth-deep text-ivory" data-testid="migration-scene">
@@ -62,10 +86,12 @@ export function MigrationScene({
             width={poster.width}
             height={poster.height}
             sizes="100vw"
+            loading="lazy"
+            decoding="async"
             style={{ objectPosition: poster.focal }}
             className="h-[52svh] w-full object-cover"
           />
-        ) : (
+        ) : videoReady ? (
           <video
             ref={videoRef}
             data-testid="migration-video"
@@ -78,6 +104,18 @@ export function MigrationScene({
             autoPlay
             preload="metadata"
             aria-label="Aerial footage of wildebeest crossing a river at sunset"
+          />
+        ) : (
+          <Image
+            src={poster.src}
+            alt={poster.alt}
+            width={poster.width}
+            height={poster.height}
+            sizes="100vw"
+            loading="lazy"
+            decoding="async"
+            style={{ objectPosition: poster.focal }}
+            className="h-[72svh] w-full object-cover sm:h-[88svh]"
           />
         )}
         {!calm ? (

@@ -5,7 +5,7 @@
   "description": "African Bison Classic Tours — premium safari planning and reservation platform",
   "type": "module",
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev",
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint app components lib server prisma scripts tests e2e --max-warnings=0",

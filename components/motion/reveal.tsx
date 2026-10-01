@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { m } from "motion/react";
 import type { ReactNode } from "react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
 
@@ -20,7 +20,7 @@ export function Reveal({
   const reduced = usePrefersReducedMotion();
   if (reduced) return <div className={className}>{children}</div>;
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <m.div
         className={className}
         initial={{ opacity: 0, y: 28 }}
@@ -30,6 +30,6 @@ export function Reveal({
       >
         {children}
       </m.div>
-    </LazyMotion>
+    </>
   );
 }

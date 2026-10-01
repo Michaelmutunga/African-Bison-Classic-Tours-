@@ -4,6 +4,7 @@ import { BrandOrbit } from "@/components/brand-orbit";
 import { DiaReveal } from "@/components/motion/dia-reveal";
 import { HyperText } from "@/components/motion/hyper-text";
 import { MagneticCta } from "@/components/motion/magnetic-button";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import { SpinningText } from "@/components/motion/spinning-text";
 
 // This jsdom setup has no browser APIs yet: stub the two that motion
@@ -48,11 +49,13 @@ installBrowserStubs();
 describe("DiaReveal", () => {
   it("announces the full headline while showing every line", () => {
     render(
-      <h1 aria-label="East African safaris, designed around you.">
-        <DiaReveal
-          lines={["East African", "Safaris,", { text: "Around you.", className: "text-sand" }]}
-        />
-      </h1>,
+      <MotionProvider>
+        <h1 aria-label="East African safaris, designed around you.">
+          <DiaReveal
+            lines={["East African", "Safaris,", { text: "Around you.", className: "text-sand" }]}
+          />
+        </h1>
+      </MotionProvider>,
     );
     expect(
       screen.getByLabelText("East African safaris, designed around you."),
@@ -75,9 +78,11 @@ describe("HyperText", () => {
 describe("MagneticCta", () => {
   it("renders an accessible link both CTAs can reuse", () => {
     render(
-      <MagneticCta href="/builder" primary label="Design your safari">
-        <HyperText text="Design your safari" />
-      </MagneticCta>,
+      <MotionProvider>
+        <MagneticCta href="/builder" primary label="Design your safari">
+          <HyperText text="Design your safari" />
+        </MagneticCta>
+      </MotionProvider>,
     );
     const link = screen.getByRole("link", { name: "Design your safari" });
     expect(link).toHaveAttribute("href", "/builder");

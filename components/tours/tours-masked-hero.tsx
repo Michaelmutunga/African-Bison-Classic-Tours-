@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { m } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCalmExperience } from "@/components/motion/use-calm";
@@ -168,7 +168,7 @@ function MaskedLine({
     );
   }
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <m.span
         className={cn("block will-change-transform", accent && "italic")}
         style={{
@@ -186,6 +186,6 @@ function MaskedLine({
       >
         {text}
       </m.span>
-    </LazyMotion>
+    </>
   );
 }

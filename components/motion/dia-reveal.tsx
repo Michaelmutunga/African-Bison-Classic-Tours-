@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { m } from "motion/react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
 
 /**
@@ -46,7 +46,7 @@ export function DiaReveal({
     );
   }
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <span className={className}>
         {lines.map((line, index) => (
           <span key={`${lineText(line)}-${index}`} aria-hidden="true" className="block overflow-hidden pb-[0.09em]">
@@ -66,6 +66,6 @@ export function DiaReveal({
           </span>
         ))}
       </span>
-    </LazyMotion>
+    </>
   );
 }

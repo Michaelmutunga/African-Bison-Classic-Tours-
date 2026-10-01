@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m, useScroll, useTransform } from "motion/react";
+import { m, useScroll, useTransform } from "motion/react";
 import type { MotionValue } from "motion/react";
 import { useRef } from "react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
@@ -38,7 +38,7 @@ export function ScrollWords({
   const words = text.split(/\s+/).filter((word) => word.length > 0);
   if (reduced) return <p className={className}>{text}</p>;
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <p ref={ref} className={className}>
         {words.map((word, index) => (
           <Word
@@ -49,6 +49,6 @@ export function ScrollWords({
           />
         ))}
       </p>
-    </LazyMotion>
+    </>
   );
 }

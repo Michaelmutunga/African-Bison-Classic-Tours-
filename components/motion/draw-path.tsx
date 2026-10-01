@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m, useScroll } from "motion/react";
+import { m, useScroll } from "motion/react";
 import { useId, useRef } from "react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
 
@@ -28,7 +28,7 @@ export function DrawPath({
     offset: ["start 0.85", "end 0.45"],
   });
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <div ref={ref}>
       <svg
         className={className}
@@ -50,6 +50,6 @@ export function DrawPath({
         )}
       </svg>
       </div>
-    </LazyMotion>
+    </>
   );
 }

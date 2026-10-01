@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { m } from "motion/react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
 
 /**
@@ -28,7 +28,7 @@ export function SplitChars({
   const chars = Array.from(text);
   if (reduced) return <span className={className}>{text}</span>;
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <span className={className} aria-hidden="true">
         {chars.map((char, index) => (
           <span key={`${char}-${index}`} className="inline-block overflow-hidden pb-[0.1em] align-bottom">
@@ -48,6 +48,6 @@ export function SplitChars({
           </span>
         ))}
       </span>
-    </LazyMotion>
+    </>
   );
 }

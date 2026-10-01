@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m, useMotionValue, useSpring } from "motion/react";
+import { m, useMotionValue, useSpring } from "motion/react";
 import type { MouseEvent, ReactNode } from "react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
 import { cn } from "@/lib/cn";
@@ -61,7 +61,7 @@ export function MagneticCta({
   };
 
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <m.a
         href={href}
         aria-label={label}
@@ -75,6 +75,6 @@ export function MagneticCta({
       >
         {children}
       </m.a>
-    </LazyMotion>
+    </>
   );
 }

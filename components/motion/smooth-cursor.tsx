@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m, useMotionValue, useSpring } from "motion/react";
+import { m, useMotionValue, useSpring } from "motion/react";
 import { useEffect, useState } from "react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
 
@@ -44,7 +44,7 @@ export function SmoothCursor() {
 
   if (reduced || !enabled) return null;
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <m.div
         aria-hidden="true"
         className="pointer-events-none fixed top-0 left-0 z-[90] rounded-full border border-sand"
@@ -53,6 +53,6 @@ export function SmoothCursor() {
         initial={{ width: 30, height: 30, opacity: 0 }}
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       />
-    </LazyMotion>
+    </>
   );
 }

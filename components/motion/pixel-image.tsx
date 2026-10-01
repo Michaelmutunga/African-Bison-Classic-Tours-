@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { m } from "motion/react";
 import Image from "next/image";
 import { SafariImage } from "@/components/safari-image";
 import { useCalmExperience } from "@/components/motion/use-calm";
@@ -57,6 +57,8 @@ export function PixelImage({
           alt={alt}
           fill
           priority={priority}
+          loading={priority ? undefined : "lazy"}
+          decoding="async"
           sizes={sizes ?? "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"}
           style={{ objectPosition: focal }}
           className="object-cover"
@@ -64,13 +66,15 @@ export function PixelImage({
       </div>
     );
   }
+  // Single-image settle (was: sharp + pixelated overlay of the same src,
+  // which issued two downloads per card). One download per card now.
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <div className={cn("relative overflow-hidden", ratio, className)}>
         <m.div
           className="absolute inset-0"
-          initial={{ scale: 1.07 }}
-          whileInView={{ scale: 1 }}
+          initial={{ scale: 1.07, opacity: 0.6 }}
+          whileInView={{ scale: 1, opacity: 1 }}
           viewport={{ once: true, margin: "-10% 0px" }}
           transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
         >
@@ -79,30 +83,14 @@ export function PixelImage({
             alt={alt}
             fill
             priority={priority}
+            loading={priority ? undefined : "lazy"}
+            decoding="async"
             sizes={sizes ?? "(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"}
             style={{ objectPosition: focal }}
             className="object-cover"
           />
         </m.div>
-        <m.div
-          aria-hidden="true"
-          className="absolute inset-0"
-          initial={{ opacity: 1 }}
-          whileInView={{ opacity: [1, 1, 0.85, 0.55, 0.25, 0] }}
-          viewport={{ once: true, margin: "-10% 0px" }}
-          transition={{ duration: 0.9, times: [0, 0.25, 0.45, 0.65, 0.85, 1], ease: "linear" }}
-        >
-          <Image
-            src={src}
-            alt=""
-            width={28}
-            height={21}
-            sizes="28px"
-            style={{ objectPosition: focal }}
-            className="pixelated h-full w-full object-cover"
-          />
-        </m.div>
       </div>
-    </LazyMotion>
+    </>
   );
 }

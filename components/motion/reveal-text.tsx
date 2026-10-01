@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, domAnimation, m } from "motion/react";
+import { m } from "motion/react";
 import { usePrefersReducedMotion } from "@/components/motion/use-calm";
 
 function splitWords(text: string): string[] {
@@ -27,7 +27,7 @@ export function RevealText({
   const words = splitWords(text);
   if (reduced) return <Tag className={className}>{text}</Tag>;
   return (
-    <LazyMotion features={domAnimation}>
+    <>
       <Tag className={className} aria-label={text}>
         {words.map((word, index) => (
           <span
@@ -52,6 +52,6 @@ export function RevealText({
           </span>
         ))}
       </Tag>
-    </LazyMotion>
+    </>
   );
 }

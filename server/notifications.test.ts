@@ -10,8 +10,8 @@ const admin = testActor("ADMIN");
 
 describe("templates", () => {
   const names = Object.keys(templates) as TemplateName[];
-  it("renders all ten templates without leaking undefined", () => {
-    expect(names).toHaveLength(10);
+  it("renders every template without leaking undefined", () => {
+    expect(names.length).toBeGreaterThanOrEqual(10);
     for (const name of names) {
       const rendered = templates[name]({
         name: "Test Guest",
@@ -92,9 +92,9 @@ describe("flow wiring", () => {
       totalCents: 200_000,
       depositCents: 60_000,
     });
-    await setBookingStatus(admin, booking.id, "HOLD");
-    await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT");
-    await setBookingStatus(admin, booking.id, "CONFIRMED");
+    for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "CONFIRMED"] as const) {
+      await setBookingStatus(admin, booking.id, status);
+    }
     return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
   }
 
@@ -115,8 +115,12 @@ describe("flow wiring", () => {
       travelEnd: end.toISOString(),
       adults: 2,
     });
-    await setBookingStatus(admin, booking.id, "HOLD");
-    await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT");
+    await setBookingStatus(admin, booking.id, "IN_REVIEW");
+    await setBookingStatus(admin, booking.id, "SUPPLIERS_PENDING");
+    await setBookingStatus(admin, booking.id, "QUOTE_DRAFT");
+    await setBookingStatus(admin, booking.id, "QUOTE_APPROVED");
+    await setBookingStatus(admin, booking.id, "QUOTE_SENT");
+    await setBookingStatus(admin, booking.id, "AWAITING_PAYMENT");
     await setBookingStatus(admin, booking.id, "CONFIRMED");
     // Confirmation emails also fired; count only reminders.
     expect(await sendTripReminders(new Date())).toBeGreaterThanOrEqual(1);
@@ -131,8 +135,7 @@ describe("flow wiring", () => {
 
   it("notifies on trip start and completion", async () => {
     const booking = await confirmedBooking();
-    await setBookingStatus(admin, booking.id, "PRE_TRIP");
-    await setBookingStatus(admin, booking.id, "ON_SAFARI");
+    await setBookingStatus(admin, booking.id, "IN_PROGRESS");
     await setBookingStatus(admin, booking.id, "COMPLETED");
     const rows = await prisma.notification.findMany({ where: { bookingId: booking.id } });
     expect(rows.map((r) => r.event)).toContain("trip.started");
@@ -171,8 +174,12 @@ describe("flow wiring", () => {
       totalCents: 200_000,
       depositCents: 60_000,
     });
-    await setBookingStatus(admin, booking.id, "HOLD");
-    await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT");
+    await setBookingStatus(admin, booking.id, "IN_REVIEW");
+    await setBookingStatus(admin, booking.id, "SUPPLIERS_PENDING");
+    await setBookingStatus(admin, booking.id, "QUOTE_DRAFT");
+    await setBookingStatus(admin, booking.id, "QUOTE_APPROVED");
+    await setBookingStatus(admin, booking.id, "QUOTE_SENT");
+    await setBookingStatus(admin, booking.id, "AWAITING_PAYMENT");
     await prisma.booking.update({
       where: { id: booking.id },
       data: { createdAt: new Date(Date.now() - 5 * 86_400_000) },

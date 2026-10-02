@@ -81,8 +81,10 @@ export async function listMyBookings(user: SafeUser | null) {
     where: { OR: [{ userId: user.id }, { customerEmail: user.email }] },
     orderBy: { createdAt: "desc" },
     include: {
-      tour: { select: { slug: true, title: true } },
-      travellers: { select: { id: true, passportNumber: true, nationality: true } },
+      tour: { select: { slug: true, title: true, category: { select: { slug: true } } } },
+      travellers: {
+        select: { id: true, fullName: true, passportNumber: true, nationality: true },
+      },
     },
   });
 }

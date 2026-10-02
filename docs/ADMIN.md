@@ -50,6 +50,18 @@ Roles: `SUPER_ADMIN`, `ADMIN`, `CONTENT_MANAGER` (write + publish),
 - Supplier assignment picks a suggested rate (cheapest first, capacity
   checked); availability requests and lock lifecycles arrive in Phase 6.
 
+## Reports (marketplace Phase 8, finance roles only)
+
+- `/admin/reports` — live figures, never summed across currencies:
+  income per booking / month (pipeline vs realised on COMPLETED) /
+  supplier (plus unassigned bucket) / service type, each with gross income
+  and margin %; outstanding client balances (priced + active taxes − paid)
+  and DUE supplier payouts; conversion NEW → CONFIRMED and mean hours to
+  first quote. Same data via `/api/admin/reports/income|outstanding|funnel`.
+- Cost, markup and margin data is restricted to SUPER_ADMIN, ADMIN and
+  FINANCE_USER at the service layer — the client never receives it because
+  booking rows carry no cost fields at all.
+
 ## Catalogue workflow
 
 - Tours are created as **drafts** (`published: false`).

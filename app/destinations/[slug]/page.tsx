@@ -14,6 +14,7 @@ import {
   publicDestinations,
   toursForDestinationName,
 } from "@/lib/catalog";
+import { imageForDestination } from "@/lib/imagery";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
 
@@ -84,13 +85,21 @@ export default async function DestinationDetailPage({
             </Badge>
           ))}
         </div>
-        <SafariImage
-          seed={destination.slug}
-          label={destination.name}
-          alt={`${destination.name} — photo pending`}
-          ratio="aspect-[21/9]"
-          className="mt-6"
-        />
+        {(() => {
+          const hero = imageForDestination(destination.slug);
+          return (
+            <SafariImage
+              seed={destination.slug}
+              label={destination.name}
+              alt={hero?.alt ?? `${destination.name} — photo pending`}
+              src={hero?.src ?? null}
+              focal={hero?.focal}
+              ratio="aspect-[21/9]"
+              className="mt-6"
+              priority
+            />
+          );
+        })()}
         <h2 className="type-h2 mt-10">Safaris visiting {destination.name}</h2>
         {relatedTours.length > 0 ? (
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

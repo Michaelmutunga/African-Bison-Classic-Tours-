@@ -1,10 +1,13 @@
+import Image from "next/image";
 import { cn } from "@/lib/cn";
+import type { ImageEntry } from "@/lib/imagery";
 
 export interface TimelineEntry {
   id: string;
   marker: string;
   title: string;
   detail?: React.ReactNode;
+  image?: ImageEntry | null;
 }
 
 /** Vertical itinerary timeline. Semantic ordered list with a fine-line rail. */
@@ -19,7 +22,20 @@ export function Timeline({ entries, className }: { entries: TimelineEntry[]; cla
           />
           <p className="type-label text-clay-deep">{entry.marker}</p>
           <p className="type-h3 mt-1">{entry.title}</p>
-          {entry.detail ? <div className="type-small mt-1 text-ink/75">{entry.detail}</div> : null}
+          {entry.image ? (
+            <span className="relative mt-3 block aspect-[16/9] overflow-hidden rounded-[2px] bg-night">
+              <Image
+                src={entry.image.src}
+                alt={entry.image.alt}
+                fill
+                sizes="(max-width: 768px) 100vw, 640px"
+                style={{ objectPosition: entry.image.focal }}
+                className="object-cover"
+                loading="lazy"
+              />
+            </span>
+          ) : null}
+          {entry.detail ? <div className="type-small mt-2 text-ink/75">{entry.detail}</div> : null}
         </li>
       ))}
     </ol>

@@ -1,5 +1,6 @@
 import type { Prisma, Role } from "@prisma/client";
 import { z } from "zod";
+import { SUPPORTED_CURRENCIES } from "@/lib/money";
 import { prisma } from "@/lib/prisma";
 import { ForbiddenError, UnauthorizedError, hasPermission, type Permission } from "@/lib/permissions";
 
@@ -81,7 +82,7 @@ export const activityInput = z.object({
   destination: z.string().trim().max(120).optional(),
   duration: z.string().trim().max(80).optional(),
   priceCents: z.number().int().min(0).nullable().optional(),
-  currency: z.string().trim().length(3).default("USD"),
+  currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
   capacity: z.number().int().min(1).nullable().optional(),
   published: z.boolean().default(true),
 });
@@ -90,7 +91,7 @@ export const roomTypeInput = z.object({
   name: z.string().trim().min(2).max(120),
   capacity: z.number().int().min(1).nullable().optional(),
   priceCents: z.number().int().min(0).nullable().optional(),
-  currency: z.string().trim().length(3).default("USD"),
+  currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
 });
 
 export const accommodationInput = z.object({
@@ -109,7 +110,7 @@ export const addOnInput = z.object({
   slug: z.string().trim().max(180).optional(),
   description: z.string().trim().max(2000).optional(),
   priceCents: z.number().int().min(0).nullable().optional(),
-  currency: z.string().trim().length(3).default("USD"),
+  currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
   published: z.boolean().default(true),
   tourIds: z.array(z.string().cuid()).max(50).default([]),
 });
@@ -127,7 +128,7 @@ export const priceComponentInput = z.object({
   slug: z.string().trim().max(180).optional(),
   kind: z.string().trim().min(2).max(60),
   amountCents: z.number().int().min(0),
-  currency: z.string().trim().length(3).default("USD"),
+  currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
   perPerson: z.boolean().default(true),
   notes: z.string().trim().max(2000).optional(),
 });

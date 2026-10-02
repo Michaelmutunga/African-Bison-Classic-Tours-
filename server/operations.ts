@@ -470,6 +470,9 @@ export interface DashboardStats {
   pipeline: { status: string; count: number }[];
   revenue30d: number;
   outstandingCents: number;
+  /** Per-currency truthful breakdowns. Never sum across currencies. */
+  revenueByCurrency: Record<string, number>;
+  outstandingByCurrency: Record<string, number>;
 }
 
 const TERMINAL_BOOKING: BookingStatus[] = ["COMPLETED", "CANCELLED", "EXPIRED", "REFUNDED"];
@@ -498,14 +501,23 @@ export async function dashboardStats(actor: Actor | null, now: Date = new Date()
       prisma.booking.groupBy({ by: ["status"], _count: true }),
       prisma.payment.findMany({
         where: { status: "SUCCEEDED", createdAt: { gte: new Date(now.getTime() - 30 * 86_400_000) } },
-        select: { amountCents: true },
+        select: { amountCents: true, currency: true },
       }),
       prisma.booking.findMany({
         where: { status: { notIn: TERMINAL_BOOKING } },
-        select: { totalCents: true, paidCents: true },
+        select: { totalCents: true, paidCents: true, currency: true },
         take: 500,
       }),
     ]);
+  const revenueByCurrency: Record<string, number> = {};
+  for (const payment of payments) {
+    revenueByCurrency[payment.currency] = (revenueByCurrency[payment.currency] ?? 0) + payment.amountCents;
+  }
+  const outstandingByCurrency: Record<string, number> = {};
+  for (const booking of open) {
+    const due = Math.max(0, booking.totalCents - booking.paidCents);
+    if (due > 0) outstandingByCurrency[booking.currency] = (outstandingByCurrency[booking.currency] ?? 0) + due;
+  }
   return {
     activeBookings,
     arrivalsToday,
@@ -517,6 +529,8 @@ export async function dashboardStats(actor: Actor | null, now: Date = new Date()
     pipeline: pipeline.map((p) => ({ status: p.status, count: p._count })),
     revenue30d: payments.reduce((sum, p) => sum + p.amountCents, 0),
     outstandingCents: open.reduce((sum, b) => sum + Math.max(0, b.totalCents - b.paidCents), 0),
+    revenueByCurrency,
+    outstandingByCurrency,
   };
 }
 

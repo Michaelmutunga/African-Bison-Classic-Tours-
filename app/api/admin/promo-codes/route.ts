@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { currentUser } from "@/lib/auth";
+import { SUPPORTED_CURRENCIES } from "@/lib/money";
 import { ForbiddenError, UnauthorizedError, hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readJson } from "@/server/http";
@@ -10,7 +11,7 @@ const promoSchema = z.object({
   kind: z.string().trim().min(2).max(20).default("discount"),
   amountCents: z.number().int().min(0).nullable().optional(),
   percentBps: z.number().int().min(1).max(10_000).nullable().optional(),
-  currency: z.string().trim().length(3).default("USD"),
+  currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
   validFrom: z.string().datetime().nullable().optional(),
   validUntil: z.string().datetime().nullable().optional(),
   maxUses: z.number().int().min(1).nullable().optional(),

@@ -20,10 +20,12 @@ import {
   TransferStatus,
   UnassignButton,
 } from "@/components/admin/booking-workspace";
+import { MoneyDual } from "@/components/finance/money-dual";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
 import { DataTable, TableBody, TableCell, TableHead, TableHeaderCell } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/states";
+import { getDisplayCurrency } from "@/lib/display-currency";
 import { applyBps, DEPOSIT_BPS, formatMoney } from "@/lib/money";
 import { formatPct } from "@/server/marketplace-pricing";
 import { suggestSuppliers } from "@/server/suppliers";
@@ -87,6 +89,13 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
     include: { guide: true },
   });
   const now = new Date();
+  const displayCurrency = await getDisplayCurrency();
+  const kesRate = await prisma.currencyRate
+    .findUnique({ where: { currency: "KES" } })
+    .catch(() => null);
+  const rate = kesRate
+    ? { rateToBase: Number(kesRate.rateToBase), asOf: kesRate.asOf.toISOString() }
+    : null;
   const outstanding = Math.max(0, pricing.totalClientCents - paidCents);
   const depositDue = Math.max(0, applyBps(pricing.totalClientCents, DEPOSIT_BPS) - paidCents);
 
@@ -308,6 +317,13 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
           <div className="mt-4">
             <ServiceLineForm bookingId={booking.id} />
           </div>
+          <dl className="type-small mt-3 grid gap-1 text-ink/75 sm:grid-cols-2">
+            <div className="flex justify-between gap-2"><dt>Total</dt><dd className="type-numeric"><MoneyDual amountCents={booking.totalCents} currency={booking.currency} displayCurrency={displayCurrency} rate={rate} /></dd></div>
+            <div className="flex justify-between gap-2"><dt>Paid</dt><dd className="type-numeric">{formatMoney(booking.paidCents, booking.currency)}</dd></div>
+            <div className="flex justify-between gap-2"><dt>Balance</dt><dd className="type-numeric"><MoneyDual amountCents={Math.max(0, booking.totalCents - booking.paidCents)} currency={booking.currency} displayCurrency={displayCurrency} rate={rate} /></dd></div>
+            <div className="flex justify-between gap-2"><dt>Party</dt><dd>{booking.adults + booking.children + booking.infants}</dd></div>
+            <div className="flex justify-between gap-2"><dt>Contact</dt><dd>{booking.customerEmail}</dd></div>
+          </dl>
         </CardBody>
       </Card>
 

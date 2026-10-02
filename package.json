@@ -5,7 +5,7 @@
   "description": "African Bison Classic Tours — premium safari planning and reservation platform",
   "type": "module",
   "scripts": {
-    "dev": "next dev --webpack",
+    "dev": "next dev",
     "build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint app components lib server prisma scripts tests e2e --max-warnings=0",
@@ -33,12 +33,16 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@prisma/client": "^6.4.1",
+    "@use-gesture/react": "^10.3.1",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
+    "lenis": "^1.3.26",
+    "motion": "^13.4.5",
     "next": "^16.3.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "sharp": "^0.35.5",
     "zod": "^4.1.5"
   },
   "devDependencies": {

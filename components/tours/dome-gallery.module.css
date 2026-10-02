@@ -1,0 +1,316 @@
+/* Dome gallery (tours listing revamp). Adapted from the React Bits
+   DomeGallery CSS: editorial sharp corners, night scrim tokens, and
+   `pan-y` so vertical page scroll keeps working on touch devices. */
+
+.sphere-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  --radius: 520px;
+  --viewer-pad: 72px;
+  --circ: calc(var(--radius) * 3.14);
+  --rot-y: calc((360deg / var(--segments-x)) / 2);
+  --rot-x: calc((360deg / var(--segments-y)) / 2);
+  --item-width: calc(var(--circ) / var(--segments-x));
+  --item-height: calc(var(--circ) / var(--segments-y));
+}
+
+.sphere-root * {
+  box-sizing: border-box;
+}
+
+.sphere,
+.item,
+.item__image {
+  transform-style: preserve-3d;
+}
+
+.sphere-main {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  /* Horizontal drags spin the dome; vertical swipes scroll the page. */
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--overlay-blur-color, #0e0d0b);
+}
+
+.stage {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  perspective: calc(var(--radius) * 2);
+  perspective-origin: 50% 50%;
+  contain: layout paint size;
+}
+
+.sphere {
+  transform: translateZ(calc(var(--radius) * -1));
+  will-change: transform;
+}
+
+.overlay,
+.overlay--blur {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.overlay {
+  background-image: radial-gradient(
+    rgba(235, 235, 235, 0) 65%,
+    var(--overlay-blur-color, #0e0d0b) 100%
+  );
+}
+
+.overlay--blur {
+  -webkit-mask-image: radial-gradient(
+    rgba(235, 235, 235, 0) 70%,
+    var(--overlay-blur-color, #0e0d0b) 90%
+  );
+  mask-image: radial-gradient(
+    rgba(235, 235, 235, 0) 70%,
+    var(--overlay-blur-color, #0e0d0b) 90%
+  );
+  backdrop-filter: blur(3px);
+}
+
+.item {
+  width: calc(var(--item-width) * var(--item-size-x));
+  height: calc(var(--item-height) * var(--item-size-y));
+  position: absolute;
+  top: -999px;
+  bottom: -999px;
+  left: -999px;
+  right: -999px;
+  margin: auto;
+  transform-origin: 50% 50%;
+  backface-visibility: hidden;
+  transition: transform 300ms;
+  transform:
+    rotateY(
+      calc(
+        var(--rot-y) * (var(--offset-x) + ((var(--item-size-x) - 1) / 2)) +
+          var(--rot-y-delta, 0deg)
+      )
+    )
+    rotateX(
+      calc(
+        var(--rot-x) * (var(--offset-y) - ((var(--item-size-y) - 1) / 2)) +
+          var(--rot-x-delta, 0deg)
+      )
+    )
+    translateZ(var(--radius));
+}
+
+.item__image {
+  position: absolute;
+  display: block;
+  inset: 10px;
+  border-radius: var(--tile-radius, 2px);
+  background: var(--overlay-blur-color, #0e0d0b);
+  overflow: hidden;
+  backface-visibility: hidden;
+  transition: transform 300ms;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  pointer-events: auto;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.item__image:focus {
+  outline: none;
+}
+
+.item__image:focus-visible {
+  outline: 2px solid var(--color-sand, #e4d9c4);
+  outline-offset: 3px;
+}
+
+.item__image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  backface-visibility: hidden;
+  filter: var(--image-filter, none);
+}
+
+.viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--viewer-pad);
+}
+
+.viewer .frame {
+  height: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--enlarge-radius, 2px);
+  display: flex;
+}
+
+@media (max-aspect-ratio: 1/1) {
+  .viewer .frame {
+    height: auto;
+    width: 100%;
+  }
+}
+
+.viewer .scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 500ms ease;
+  backdrop-filter: blur(3px);
+}
+
+.sphere-root[data-enlarging="true"] .viewer .scrim {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.viewer .enlarge {
+  position: absolute;
+  z-index: 30;
+  border-radius: var(--enlarge-radius, 2px);
+  overflow: hidden;
+  transition:
+    transform 500ms ease,
+    opacity 500ms ease;
+  transform-origin: top left;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  background: var(--overlay-blur-color, #0e0d0b);
+}
+
+.viewer .enlarge img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: var(--image-filter, none);
+}
+
+.sphere-root .enlarge-closing img {
+  filter: var(--image-filter, none);
+}
+
+/* Closing-flight overlay created imperatively; all geometry is inline. */
+.enlarge-closing {
+  pointer-events: none;
+}
+
+/* Tour caption inside the enlarged preview. The scrim gradient sits on
+   photography only, so text stays readable (allowed use). */
+.enlarge__caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 3.5rem 1.25rem 1.25rem;
+  background: linear-gradient(
+    to bottom,
+    rgb(14 13 11 / 0),
+    rgb(14 13 11 / 0.82)
+  );
+  color: var(--color-ivory, #faf7f1);
+}
+
+.enlarge__eyebrow {
+  font-size: 0.6875rem;
+  line-height: 1.4;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 650;
+  color: var(--color-sand, #e4d9c4);
+}
+
+.enlarge__title {
+  font-family: var(--font-display, "Fraunces", Georgia, serif);
+  font-size: 1.375rem;
+  line-height: 1.2;
+  font-weight: 560;
+  margin-top: 0.375rem;
+  text-wrap: balance;
+}
+
+.enlarge__link {
+  display: inline-block;
+  margin-top: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: var(--color-ivory, #faf7f1);
+}
+
+.enlarge__link:hover {
+  color: var(--color-sand, #e4d9c4);
+}
+
+.enlarge__close {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.625rem;
+  z-index: 2;
+  display: flex;
+  height: 2.25rem;
+  width: 2.25rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(250 247 241 / 0.4);
+  background: rgb(14 13 11 / 0.55);
+  color: var(--color-ivory, #faf7f1);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.enlarge__close:hover {
+  border-color: var(--color-ivory, #faf7f1);
+}
+
+.edge-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 120px;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--overlay-blur-color, #0e0d0b)
+  );
+}
+
+.edge-fade--top {
+  top: 0;
+  transform: rotate(180deg);
+}
+
+.edge-fade--bottom {
+  bottom: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item,
+  .item__image,
+  .viewer .scrim,
+  .viewer .enlarge {
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,7 +1,7 @@
 import { Prisma, type BookingStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, SUPPORTED_CURRENCIES } from "@/lib/money";
 import { notify } from "@/server/notifications/dispatch";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import { NotFoundError, type Actor } from "@/server/catalogue";
@@ -32,7 +32,7 @@ function gateStaff(actor: Actor | null): void {
 export const paymentInput = z.object({
   bookingId: z.string().cuid(),
   amountCents: z.number().int().min(1).max(100_000_000),
-  currency: z.string().trim().length(3).default("USD"),
+  currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
   kind: z.enum(["DEPOSIT", "BALANCE", "FULL"]).default("DEPOSIT"),
   provider: z.string().trim().min(1).max(20).default("mock"),
   idempotencyKey: z.string().trim().max(120).optional(),

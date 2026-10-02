@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { SiteBadge } from "@/components/site-badge";
 import { Container } from "@/components/ui/layout";
+import { SITE_CONTACT } from "@/lib/site-contact";
 
 const SAFARIS = [
   { href: "/tours?category=kenya", label: "Kenya safaris" },
@@ -23,11 +25,10 @@ const COMPANY = [
 
 export function SiteFooter() {
   return (
-    <footer className="mt-20 bg-ink text-ivory">
+    <footer className="bg-night text-ivory">
       <Container className="grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <p className="type-label text-sand">African Bison</p>
-          <p className="font-display mt-1 text-2xl font-semibold">Classic Tours</p>
+          <SiteBadge />
           <p className="type-small mt-3 text-ivory/70">
             East African safaris, planned around you. Nairobi, Kenya.
           </p>
@@ -59,19 +60,20 @@ export function SiteFooter() {
         <div>
           <p className="type-label text-sand">Contact</p>
           <address className="type-small mt-3 space-y-1 not-italic text-ivory/80">
-            <p>JKIA Airport, 1st Floor, Suite 1</p>
-            <p>Nairobi, Kenya</p>
+            {SITE_CONTACT.addressLines.map((line) => (
+              <p key={line}>{line}</p>
+            ))}
             <p>
-              <a href="tel:+254734466432" className="underline underline-offset-4">
-                +254 734 466 432
+              <a href={SITE_CONTACT.phoneHref} className="underline underline-offset-4">
+                {SITE_CONTACT.phoneDisplay}
               </a>
             </p>
             <p>
               <a
-                href="mailto:info@africanbisonclassictours.com"
+                href={`mailto:${SITE_CONTACT.email}`}
                 className="underline underline-offset-4"
               >
-                info@africanbisonclassictours.com
+                {SITE_CONTACT.email}
               </a>
             </p>
           </address>

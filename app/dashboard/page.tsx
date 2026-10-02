@@ -110,7 +110,10 @@ export default async function DashboardPage() {
               adults: b.adults,
               children: b.children,
               travelStart: b.travelStart,
-              travellers: [],
+              travellers: ("travellers" in b && Array.isArray(b.travellers) ? b.travellers : []).map((t) => ({
+                passportNumber: t.passportNumber ?? null,
+                nationality: t.nationality ?? null,
+              })),
             }).filter((item) => item.status === "pending"),
           );
           return pending.length === 0

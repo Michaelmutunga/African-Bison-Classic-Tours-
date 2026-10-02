@@ -5,11 +5,19 @@ import { Card, CardBody } from "@/components/ui/card";
 import type { BlogPost } from "@prisma/client";
 import { formatDate } from "@/lib/content";
 import type { PublicDestinationSummary, PublicTourSummary } from "@/lib/catalog";
+import { imageForDestination, imageForPost, imageForTour } from "@/lib/imagery";
 
 export function TourCard({ tour }: { tour: PublicTourSummary }) {
+  const image = imageForTour(tour.slug, tour.categorySlug);
   return (
     <Card className="flex h-full flex-col overflow-hidden">
-      <SafariImage seed={tour.slug} label={tour.title} alt={`${tour.title} — photo pending`} />
+      <SafariImage
+        seed={tour.slug}
+        label={tour.title}
+        alt={image?.alt ?? `${tour.title} — photo pending`}
+        src={image?.src ?? null}
+        focal={image?.focal}
+      />
       <CardBody className="flex flex-1 flex-col">
         <div className="flex flex-wrap gap-2">
           <Badge tone="sand">{tour.categoryLabel}</Badge>
@@ -34,12 +42,15 @@ export function TourCard({ tour }: { tour: PublicTourSummary }) {
 }
 
 export function DestinationCard({ destination }: { destination: PublicDestinationSummary }) {
+  const image = imageForDestination(destination.slug);
   return (
     <Card className="flex h-full flex-col overflow-hidden">
       <SafariImage
         seed={destination.slug}
         label={destination.name}
-        alt={`${destination.name} — photo pending`}
+        alt={image?.alt ?? `${destination.name} — photo pending`}
+        src={image?.src ?? null}
+        focal={image?.focal}
       />
       <CardBody className="flex flex-1 flex-col">
         <p className="type-label text-clay-deep">{destination.country}</p>
@@ -56,9 +67,16 @@ export function DestinationCard({ destination }: { destination: PublicDestinatio
 
 export function PostCard({ post }: { post: Pick<BlogPost, "slug" | "title" | "excerpt" | "publishedAt"> }) {
   const date = formatDate(post.publishedAt?.toISOString() ?? null);
+  const image = imageForPost(post.slug);
   return (
     <Card className="flex h-full flex-col overflow-hidden">
-      <SafariImage seed={post.slug} label={post.title} alt={`${post.title} — photo pending`} />
+      <SafariImage
+        seed={post.slug}
+        label={post.title}
+        alt={image?.alt ?? `${post.title} — photo pending`}
+        src={image?.src ?? null}
+        focal={image?.focal}
+      />
       <CardBody className="flex flex-1 flex-col">
         {date ? <p className="type-caption text-ink/60">{date}</p> : null}
         <h3 className="type-h3 mt-1">

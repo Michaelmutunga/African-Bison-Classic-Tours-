@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Payment, Refund } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { ErrorState, Spinner } from "@/components/ui/states";
 import { DataTable, TableBody, TableCell, TableHead, TableHeaderCell } from "@/components/ui/table";
-import { formatMoney } from "@/lib/money";
+import { convertCents, formatMoney, minorUnitsPerMajor } from "@/lib/money";
 
 export function PayPanel({
   bookingId,
@@ -37,6 +37,19 @@ export function PayPanel({
   const [notice, setNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const balance = Math.max(0, totalCents - paidCents);
+  const factor = minorUnitsPerMajor(currency);
+  const [kesRate, setKesRate] = useState<{ rateToBase: number; asOf: string } | null>(null);
+
+  useEffect(() => {
+    if (currency !== "USD") return;
+    fetch("/api/currency-rates")
+      .then((res) => res.json())
+      .then((body: { rates?: { currency: string; rateToBase: string | number; asOf: string }[] }) => {
+        const kes = body.rates?.find((rate) => rate.currency === "KES");
+        if (kes) setKesRate({ rateToBase: Number(kes.rateToBase), asOf: kes.asOf });
+      })
+      .catch(() => undefined);
+  }, [currency]);
 
   async function pay(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -49,7 +62,7 @@ export function PayPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bookingId,
-          amountCents: Math.round(Number(amount) * 100),
+          amountCents: Math.round(Number(amount) * factor),
           kind,
         }),
       });
@@ -88,6 +101,12 @@ export function PayPanel({
         <div className="rounded-[2px] border border-ink/15 px-4 py-3">
           <p className="type-label text-ink/60">Balance</p>
           <p className="type-h3 type-numeric">{formatMoney(balance, currency)}</p>
+          {currency === "USD" && kesRate ? (
+            <p className="type-caption mt-1 text-ink/60">
+              ≈ {formatMoney(convertCents(balance, 1, kesRate.rateToBase), "KES")} · indicative
+              M-Pesa reference, billed in USD
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -155,7 +174,7 @@ export function PayPanel({
                 inputMode="decimal"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                placeholder={String(balance / 100)}
+                placeholder={String(balance / factor)}
                 required
               />
             </div>

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { TourCard } from "@/components/cards";
-import { MarketingShell } from "@/components/marketing-shell";
-import { Badge } from "@/components/ui/badge";
+import { JsonLd } from "@/components/json-ld";
+import { ToursExplorer } from "@/components/tours/tours-explorer";
+import { ToursMaskedHero } from "@/components/tours/tours-masked-hero";
+import type { ShowcaseTour } from "@/components/tours/showcase";
 import { deriveCategories, getPublishedTours, summarizeTours } from "@/lib/catalog";
+import { imageForSlot, imageForTourUnique } from "@/lib/imagery";
 
 export const metadata: Metadata = {
   title: "Safari tours",
@@ -13,46 +14,81 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://africanbisonclassictours.com";
+
 export default async function ToursPage({
   searchParams,
 }: {
   searchParams: Promise<{ category?: string }>;
 }) {
   const { category } = await searchParams;
-  // Single tour-table scan; filter in memory.
+  // Single tour-table scan; categories, counts and lists derive in memory.
   const tours = await getPublishedTours();
   const categories = deriveCategories(tours);
-  const active = categories.some((c) => c.slug === category) ? (category as string) : "all";
-  const shown = summarizeTours(tours, active === "all" ? undefined : active);
-  const total = tours.length;
-  const activeLabel = categories.find((c) => c.slug === active)?.label;
+  const initialCategory = categories.some((c) => c.slug === category)
+    ? (category as string)
+    : "all";
+
+  // One image per journey across hero, deck and index: the used-set keeps
+  // every photograph distinct without extra requests.
+  const heroEntry = imageForSlot("hero.primary");
+  const used = new Set<string>();
+  if (heroEntry) used.add(heroEntry.id);
+  const showcase: ShowcaseTour[] = summarizeTours(tours).map((tour) => {
+    const image = imageForTourUnique(tour.slug, tour.categorySlug, used);
+    return {
+      slug: tour.slug,
+      title: tour.title,
+      categorySlug: tour.categorySlug,
+      categoryLabel: tour.categoryLabel,
+      durationDays: tour.durationDays,
+      excerpt: tour.excerpt,
+      image: image
+        ? { src: image.src, alt: image.alt, focal: image.focal }
+        : null,
+    };
+  });
+
+  const days = showcase.map((tour) => tour.durationDays);
+  const minDays = days.length > 0 ? Math.min(...days) : null;
+  const maxDays = days.length > 0 ? Math.max(...days) : null;
 
   return (
-    <MarketingShell
-      eyebrow="Safaris"
-      title="Journeys across Kenya and Tanzania"
-      lede="Real itineraries with day-by-day plans, inclusions and exclusions. Pricing is quoted per trip — nothing is invented here."
-    >
-      <nav aria-label="Filter by region" className="flex flex-wrap gap-2">
-        <Link href="/tours">
-          <Badge tone={active === "all" ? "ink" : "neutral"}>All ({total})</Badge>
-        </Link>
-        {categories.map((c) => (
-          <Link key={c.slug} href={`/tours?category=${c.slug}`}>
-            <Badge tone={active === c.slug ? "ink" : "neutral"}>
-              {c.label} ({c.count})
-            </Badge>
-          </Link>
-        ))}
-      </nav>
-      <p className="type-small mt-4 text-ink/70" aria-live="polite">
-        Showing {shown.length} {active === "all" ? "safaris" : activeLabel?.toLowerCase()}.
-      </p>
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {shown.map((tour) => (
-          <TourCard key={tour.slug} tour={tour} />
-        ))}
-      </div>
-    </MarketingShell>
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "ItemList",
+          name: "Safari tours",
+          itemListElement: showcase.map((tour, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: tour.title,
+            url: `${SITE_URL}/tours/${tour.slug}`,
+          })),
+        }}
+      />
+      <ToursMaskedHero
+        image={
+          heroEntry
+            ? {
+                src: heroEntry.src,
+                alt: heroEntry.alt,
+                focal: heroEntry.focal,
+              }
+            : null
+        }
+        tourCount={showcase.length}
+        regionCount={categories.length}
+        minDays={minDays}
+        maxDays={maxDays}
+      />
+      <ToursExplorer
+        tours={showcase}
+        categories={categories}
+        initialCategory={initialCategory}
+      />
+    </>
   );
 }

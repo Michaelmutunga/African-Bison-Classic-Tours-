@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
-import { ConciergeWidget } from "@/components/concierge/concierge-widget";
+import { ConciergeLazy } from "@/components/concierge/concierge-lazy";
 import { JsonLd, organizationJsonLd } from "@/components/json-ld";
+import { MotionProvider } from "@/components/motion/motion-provider";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
@@ -13,6 +14,7 @@ const display = Fraunces({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
+  axes: ["opsz"],
 });
 
 const sans = Inter({
@@ -41,10 +43,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
-        <SiteHeader />
-        <main id="content">{children}</main>
-        <SiteFooter />
-        <ConciergeWidget />
+        <MotionProvider>
+          <SiteHeader />
+          <main id="content">{children}</main>
+          <SiteFooter />
+        </MotionProvider>
+        <ConciergeLazy />
       </body>
     </html>
   );

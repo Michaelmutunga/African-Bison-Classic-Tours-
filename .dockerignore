@@ -9,3 +9,4 @@ playwright-report
 npm-debug.log
 Dockerfile
 docker-compose.yml
+incoming

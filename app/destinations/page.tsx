@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
-import { DestinationCard } from "@/components/cards";
-import { MarketingShell } from "@/components/marketing-shell";
-import { publicDestinations } from "@/lib/catalog";
+import { DestinationsDriftSection } from "@/components/destinations/destinations-drift-section";
+import { Container } from "@/components/ui/layout";
+import { getPublishedTours, publicDestinations } from "@/lib/catalog";
+import {
+  buildDestinationSafariCounts,
+  buildDriftWallItems,
+} from "@/lib/destinations-wall";
 
 export const metadata: Metadata = {
   title: "Destinations",
@@ -12,18 +16,32 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function DestinationsPage() {
-  const destinations = await publicDestinations();
+  // One destination read plus the cached single tour-table scan; the wall
+  // items and ledger counts both derive from these, no extra queries.
+  const [destinations, tours] = await Promise.all([
+    publicDestinations(),
+    getPublishedTours(),
+  ]);
+  const items = buildDriftWallItems(destinations);
+  const safariCounts = buildDestinationSafariCounts(tours, destinations);
   return (
-    <MarketingShell
-      eyebrow="Destinations"
-      title="Where the journeys go"
-      lede={`${destinations.length} parks, reserves, lakes, mountains and one remarkable city — the ground our itineraries cover.`}
-    >
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {destinations.map((destination) => (
-          <DestinationCard key={destination.slug} destination={destination} />
-        ))}
-      </div>
-    </MarketingShell>
+    <>
+      <Container className="pt-12 pb-10 sm:pt-16">
+        <p className="type-label text-clay-deep">Destinations</p>
+        <h1 className="type-h1 mt-2 max-w-3xl text-balance">
+          Where the journeys go
+        </h1>
+        <p className="type-body mt-4 text-ink/75">
+          {destinations.length} parks, reserves, lakes, mountains and one
+          remarkable city. The wall below holds the places we have
+          photographed on the road. The ledger lists them all.
+        </p>
+      </Container>
+      <DestinationsDriftSection
+        items={items}
+        destinations={destinations}
+        safariCounts={safariCounts}
+      />
+    </>
   );
 }

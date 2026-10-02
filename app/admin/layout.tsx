@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { rateCaption } from "@/components/finance/money-dual";
 import { currentUser } from "@/lib/auth";
+import { getDisplayCurrency } from "@/lib/display-currency";
 import { canSeeFinance, hasPermission } from "@/lib/permissions";
-import { Container } from "@/components/ui/layout";
-import { cn } from "@/lib/cn";
+import { prisma } from "@/lib/prisma";
 
 export const metadata: Metadata = {
   title: "Operations",
@@ -18,55 +19,79 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
   const canCatalogue = hasPermission(user.role, "catalogue.write");
   const finance = canSeeFinance(user.role);
-  const links = [
-    { href: "/admin", label: "Dashboard" },
-    { href: "/admin/bookings", label: "Bookings" },
-    { href: "/admin/calendar", label: "Calendar" },
-    ...(canCatalogue ? [{ href: "/admin/tours", label: "Tours" }] : []),
-    ...(canCatalogue ? [{ href: "/admin/destinations", label: "Destinations" }] : []),
-    ...(canCatalogue ? [{ href: "/admin/blog", label: "Journal" }] : []),
-    ...(canCatalogue ? [{ href: "/admin/faqs", label: "FAQs" }] : []),
-    ...(canCatalogue ? [{ href: "/admin/media", label: "Media" }] : []),
-    ...(canCatalogue ? [{ href: "/admin/settings", label: "Settings" }] : []),
-    { href: "/admin/quotes", label: "Quotes" },
-    ...(finance ? [{ href: "/admin/pricing", label: "Pricing" }] : []),
-    { href: "/admin/invoices", label: "Invoices" },
-    { href: "/admin/payments", label: "Payments" },
-    ...(finance ? [{ href: "/admin/reports", label: "Reports" }] : []),
-    { href: "/admin/travellers", label: "Travellers" },
-    { href: "/admin/fleet", label: "Fleet & guides" },
-    { href: "/admin/suppliers", label: "Suppliers" },
-    { href: "/admin/transfers", label: "Transfers" },
-    { href: "/admin/inquiries", label: "Enquiries" },
-    { href: "/admin/notifications", label: "Notifications" },
-    { href: "/admin/audit-logs", label: "Audit" },
+  const displayCurrency = await getDisplayCurrency();
+  const kesRate = await prisma.currencyRate
+    .findUnique({ where: { currency: "KES" } })
+    .catch(() => null);
+  const groups = [
+    {
+      title: "Operations",
+      links: [
+        { href: "/admin", label: "Dashboard" },
+        { href: "/admin/bookings", label: "Bookings" },
+        { href: "/admin/calendar", label: "Calendar" },
+        { href: "/admin/transfers", label: "Transfers" },
+        { href: "/admin/travellers", label: "Travellers" },
+        { href: "/admin/fleet", label: "Fleet & guides" },
+        { href: "/admin/suppliers", label: "Suppliers" },
+        { href: "/admin/inquiries", label: "Enquiries" },
+      ],
+    },
+    {
+      title: "Money",
+      links: [
+        { href: "/admin/quotes", label: "Quotes" },
+        ...(finance ? [{ href: "/admin/pricing", label: "Pricing" }] : []),
+        { href: "/admin/invoices", label: "Invoices" },
+        { href: "/admin/payments", label: "Payments" },
+        ...(finance ? [{ href: "/admin/reports", label: "Reports" }] : []),
+      ],
+    },
+    ...(canCatalogue
+      ? [
+          {
+            title: "Catalogue",
+            links: [
+              { href: "/admin/tours", label: "Tours" },
+              { href: "/admin/destinations", label: "Destinations" },
+              { href: "/admin/accommodations", label: "Stays" },
+              { href: "/admin/activities", label: "Activities" },
+            ],
+          },
+          {
+            title: "Content",
+            links: [
+              { href: "/admin/blog", label: "Journal" },
+              { href: "/admin/faqs", label: "FAQs" },
+              { href: "/admin/media", label: "Media" },
+              { href: "/admin/settings", label: "Settings" },
+            ],
+          },
+        ]
+      : []),
+    {
+      title: "System",
+      links: [
+        { href: "/admin/notifications", label: "Notifications" },
+        { href: "/admin/audit-logs", label: "Audit" },
+      ],
+    },
   ];
 
   return (
-    <Container className="py-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-ink/15 pb-4">
-        <div>
-          <p className="type-label text-clay-deep">Operations console</p>
-          <h1 className="type-h2 mt-1">African Bison operations</h1>
-        </div>
-        <p className="type-small text-ink/60">
-          Signed in as {user.name} ({user.role})
-        </p>
-      </div>
-      <nav aria-label="Operations" className="mt-4 flex flex-wrap gap-1.5">
-        {links.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={cn(
-              "type-caption rounded-full border border-ink/20 px-3 py-1.5 hover:border-ink",
-            )}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </nav>
-      <div className="mt-6">{children}</div>
-    </Container>
+    <AdminShell
+      userName={user.name}
+      userRole={user.role}
+      groups={groups}
+      displayCurrency={displayCurrency}
+      rateBadge={
+        rateCaption(
+          kesRate ? Number(kesRate.rateToBase) : null,
+          kesRate ? kesRate.asOf.toISOString() : null,
+        ) ?? (displayCurrency === "KES" ? "KES rate missing — set in Settings" : null)
+      }
+    >
+      {children}
+    </AdminShell>
   );
 }

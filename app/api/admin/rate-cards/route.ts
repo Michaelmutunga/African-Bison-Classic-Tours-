@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { currentUser } from "@/lib/auth";
+import { SUPPORTED_CURRENCIES } from "@/lib/money";
 import { ForbiddenError, UnauthorizedError, hasPermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/server/catalogue";
@@ -12,7 +13,7 @@ const rateCardSchema = z.object({
   comfortTier: z.string().trim().min(1).max(40),
   transportStyle: z.string().trim().max(40).nullable().optional(),
   amountCents: z.number().int().min(0),
-  currency: z.string().trim().length(3).default("USD"),
+  currency: z.enum(SUPPORTED_CURRENCIES).default("USD"),
   placeholder: z.boolean().default(false),
   notes: z.string().trim().max(2000).optional(),
 });

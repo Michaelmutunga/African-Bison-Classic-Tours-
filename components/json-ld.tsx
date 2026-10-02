@@ -1,9 +1,12 @@
+import { SITE_CONTACT } from "@/lib/site-contact";
+
 /** Render JSON-LD structured data. Values must be factual, never invented. */
 export function JsonLd({ data }: { data: Record<string, unknown> }) {
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      // Escape < to prevent </script> breakout from crafted catalogue copy.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(data).replace(/</g, "\\u003c") }}
     />
   );
 }
@@ -14,8 +17,8 @@ export function organizationJsonLd(siteUrl: string) {
     "@type": "TravelAgency",
     name: "African Bison Classic Tours",
     url: siteUrl,
-    email: "info@africanbisonclassictours.com",
-    telephone: "+254734466432",
+    email: SITE_CONTACT.email,
+    telephone: SITE_CONTACT.phoneHref.replace("tel:", ""),
     address: {
       "@type": "PostalAddress",
       streetAddress: "JKIA Airport, 1st Floor, Suite 1",

@@ -1,5 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
 import { ToursMaskedHero } from "@/components/tours/tours-masked-hero";
 
 function installStubs(matches: boolean) {
@@ -33,14 +33,6 @@ function installStubs(matches: boolean) {
     configurable: true,
     value: FakeObserver,
   });
-  if (typeof HTMLVideoElement !== "undefined") {
-    vi.spyOn(HTMLVideoElement.prototype, "play").mockImplementation(
-      () => Promise.resolve(),
-    );
-    vi.spyOn(HTMLVideoElement.prototype, "pause").mockImplementation(
-      () => undefined,
-    );
-  }
 }
 
 const IMAGE = {
@@ -49,29 +41,48 @@ const IMAGE = {
   focal: "50% 62%",
 };
 
-describe("ToursMaskedHero video-text", () => {
-  it("announces the full sentence with video inside JOURNEYS", () => {
+function renderHero() {
+  render(
+    <ToursMaskedHero
+      image={IMAGE}
+      tourCount={20}
+      regionCount={3}
+      minDays={1}
+      maxDays={12}
+    />,
+  );
+}
+
+describe("ToursMaskedHero sticky backdrop", () => {
+  it("announces the full sentence with a pinned image backdrop", () => {
     installStubs(false);
-    render(
-      <ToursMaskedHero
-        image={IMAGE}
-        videoSrc="/video/hero.mp4"
-        tourCount={20}
-        regionCount={3}
-        minDays={1}
-        maxDays={12}
-      />,
-    );
+    renderHero();
     expect(
       screen.getByRole("heading", {
         name: "Journeys across Kenya and Tanzania.",
       }),
     ).toBeInTheDocument();
-    const video = screen.getByTestId("tours-hero-video");
-    expect(video).toHaveAttribute("src", "/video/hero.mp4");
-    expect(video).toHaveAttribute("muted");
-    expect(video).toHaveAttribute("loop");
-    expect(video).toHaveAttribute("playsinline");
+    const backdrop = screen.getByTestId("tours-hero-backdrop");
+    expect(backdrop).toHaveClass("sticky");
+    const photo = backdrop.querySelector("img");
+    expect(photo?.getAttribute("src") ?? "").toContain(
+      "landing-savannah-sunset",
+    );
+  });
+
+  it("carries no video anywhere", () => {
+    installStubs(false);
+    renderHero();
+    expect(document.querySelector("video")).toBeNull();
+    expect(screen.queryByTestId("tours-hero-video")).toBeNull();
+    expect(screen.queryByTestId("tours-hero-pause")).toBeNull();
+  });
+
+  it("keeps stats, breadcrumb and both CTAs across the beats", () => {
+    installStubs(false);
+    renderHero();
+    expect(screen.getByText("20")).toBeInTheDocument();
+    expect(screen.getByText("1 to 12 days")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Choose your safari" }),
     ).toHaveAttribute("href", "#choose");
@@ -80,68 +91,15 @@ describe("ToursMaskedHero video-text", () => {
     ).toHaveAttribute("href", "#dome");
   });
 
-  it("pause control toggles and stays in the tab order", () => {
-    installStubs(false);
-    render(
-      <ToursMaskedHero
-        image={IMAGE}
-        videoSrc="/video/hero.mp4"
-        tourCount={20}
-        regionCount={3}
-        minDays={1}
-        maxDays={12}
-      />,
-    );
-    const pause = screen.getByTestId("tours-hero-pause");
-    expect(pause).toHaveAttribute("aria-pressed", "false");
-    fireEvent.click(pause);
-    expect(pause).toHaveAttribute("aria-pressed", "true");
-    expect(pause).toHaveAccessibleName("Play background video");
-    fireEvent.click(pause);
-    expect(pause).toHaveAttribute("aria-pressed", "false");
-  });
-
-  it("calm visitors get solid type with no video", async () => {
+  it("calm visitors get the same pinned layout with no drift", () => {
     installStubs(true);
-    render(
-      <ToursMaskedHero
-        image={IMAGE}
-        videoSrc="/video/hero.mp4"
-        tourCount={20}
-        regionCount={3}
-        minDays={1}
-        maxDays={12}
-      />,
-    );
+    renderHero();
     expect(
       screen.getByRole("heading", {
         name: "Journeys across Kenya and Tanzania.",
       }),
     ).toBeInTheDocument();
-    // Calm settles after mount (rAF), so the video unmounts async.
-    await waitFor(() => {
-      expect(screen.queryByTestId("tours-hero-video")).toBeNull();
-    });
-    expect(screen.queryByTestId("tours-hero-pause")).toBeNull();
-  });
-
-  it("missing clip falls back to solid type with no video", () => {
-    installStubs(false);
-    render(
-      <ToursMaskedHero
-        image={IMAGE}
-        videoSrc={null}
-        tourCount={20}
-        regionCount={3}
-        minDays={1}
-        maxDays={12}
-      />,
-    );
-    expect(screen.queryByTestId("tours-hero-video")).toBeNull();
-    expect(
-      screen.getByRole("heading", {
-        name: "Journeys across Kenya and Tanzania.",
-      }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("tours-hero-backdrop")).toHaveClass("sticky");
+    expect(document.querySelector("video")).toBeNull();
   });
 });

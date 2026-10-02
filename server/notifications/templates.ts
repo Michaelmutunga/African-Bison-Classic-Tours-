@@ -156,6 +156,26 @@ export const templates = {
     ]);
     return { subject, html, text };
   },
+
+  submissionReceived(input: TemplateInput): RenderedTemplate {
+    const subject = `We received your safari request${input.reference ? ` (${input.reference})` : ""}`;
+    const { html, text } = layout("Karibu — your request is with us", greetingFor(input), [
+      ...(input.reference ? [`Your booking reference is ${input.reference} — quote it in any message to us and it will find your trip instantly.`] : []),
+      ...(input.details ?? []),
+      "A safari planner reads every request personally and replies, usually within one business day. Nothing is booked or charged until you approve a quote.",
+    ], input.ctaUrl ? { url: input.ctaUrl, label: input.ctaLabel ?? "Create an account to track your safari" } : undefined);
+    return { subject, html, text };
+  },
+
+  newSubmission(input: TemplateInput): RenderedTemplate {
+    const subject = `New safari request${input.reference ? ` ${input.reference}` : ""}`;
+    const { html, text } = layout("New request needs a planner", "Hello team,", [
+      ...(input.reference ? [`Reference: ${input.reference}.`] : []),
+      ...(input.details ?? []),
+      "Open the booking to review, request suppliers and draft the quote.",
+    ]);
+    return { subject, html, text };
+  },
 };
 
 export type TemplateName = keyof typeof templates;

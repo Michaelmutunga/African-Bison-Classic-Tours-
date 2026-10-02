@@ -145,17 +145,31 @@ function SendToPlanner({ summary }: { summary: string }) {
     setFieldErrors({});
     const travellers = `${draft.adults} adults${draft.children > 0 ? `, ${draft.children} children` : ""}${draft.infants > 0 ? `, ${draft.infants} infants` : ""}`;
     try {
-      const response = await fetch("/api/inquiries", {
+      const response = await fetch("/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name,
-          email,
-          destination: draft.regions.join(", "),
-          travelDates: `${draft.startDate} to ${draft.endDate}`,
-          travellers,
-          message: `Safari plan from the builder:\n${summary}\n\nPlease turn this into a precise quote.`,
-          metadata: { source: "builder", draft },
+          customerName: name,
+          customerEmail: email,
+          source: "CUSTOM",
+          ...(draft.startDate ? { travelStart: `${draft.startDate}T00:00:00Z` } : {}),
+          ...(draft.endDate ? { travelEnd: `${draft.endDate}T00:00:00Z` } : {}),
+          adults: draft.adults,
+          children: draft.children,
+          infants: draft.infants,
+          accommodationTier: draft.comfort || undefined,
+          interests: [...draft.interests, ...draft.experiences],
+          customItinerary: {
+            source: "builder",
+            regions: draft.regions,
+            destinations: draft.destinationSlugs,
+            travelStyle: draft.travelStyle,
+            comfort: draft.comfort,
+            transport: draft.transport,
+            addOns: draft.addOnSlugs,
+            summary,
+            notes: `Safari plan from the builder (${travellers}). Please turn this into a precise quote.`,
+          },
         }),
       });
       const body = (await response.json()) as {

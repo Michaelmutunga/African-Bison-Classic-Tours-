@@ -26,6 +26,9 @@ function gateStaff(actor: Actor | null): void {
 // ---------------------------------------------------------------------------
 
 export const TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
+  // NEW is the marketplace entry state (Phase 4). It mirrors INQUIRY until
+  // the full workflow machine lands (Phase 6 migrates legacy rows over).
+  NEW: ["QUOTE_DRAFT", "HOLD", "CANCELLED", "EXPIRED"],
   INQUIRY: ["QUOTE_DRAFT", "HOLD", "CANCELLED", "EXPIRED"],
   QUOTE_DRAFT: ["QUOTE_SENT", "HOLD", "CANCELLED", "EXPIRED"],
   QUOTE_SENT: ["QUOTE_DRAFT", "HOLD", "AWAITING_DEPOSIT", "CANCELLED", "EXPIRED"],
@@ -41,8 +44,9 @@ export const TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   REFUNDED: [],
 };
 
-const MODIFIABLE = ["INQUIRY", "HOLD", "AWAITING_DEPOSIT"] as const;
+const MODIFIABLE = ["NEW", "INQUIRY", "HOLD", "AWAITING_DEPOSIT"] as const;
 const CANCELLABLE: BookingStatus[] = [
+  "NEW",
   "INQUIRY",
   "QUOTE_DRAFT",
   "QUOTE_SENT",
@@ -87,13 +91,31 @@ export const bookingInput = z.object({
   customerName: z.string().trim().min(2).max(160),
   customerEmail: z.string().trim().email().max(254),
   customerPhone: z.string().trim().max(40).optional(),
+  // Honeypot: genuine submissions leave this empty (checked on public routes).
+  company: z.string().max(0).optional().or(z.literal("")),
+  source: z.enum(["TOUR", "CUSTOM"]).default("TOUR"),
   tourId: z.string().cuid().optional(),
   quoteId: z.string().cuid().optional(),
   travelStart: z.string().datetime().optional(),
   travelEnd: z.string().datetime().optional(),
+  flexibleDates: z.boolean().default(false),
   adults: z.number().int().min(1).max(18).default(1),
   children: z.number().int().min(0).max(18).default(0),
   infants: z.number().int().min(0).max(6).default(0),
+  childrenAges: z.array(z.number().int().min(0).max(17)).max(18).default([]),
+  nationality: z.string().trim().max(80).optional(),
+  arrivalFlight: z.string().trim().max(120).optional(),
+  departureFlight: z.string().trim().max(120).optional(),
+  airport: z.string().trim().max(120).optional(),
+  accommodationTier: z.string().trim().max(80).optional(),
+  budgetRange: z.string().trim().max(80).optional(),
+  interests: z.array(z.string().trim().min(2).max(80)).max(16).default([]),
+  specialRequests: z.string().trim().max(4000).optional(),
+  occasion: z.string().trim().max(120).optional(),
+  pickupLocation: z.string().trim().max(200).optional(),
+  contactChannel: z.enum(["email", "phone", "whatsapp"]).optional(),
+  // Custom designs: structured request until service-line parsing (Phase 6).
+  customItinerary: z.record(z.string(), z.unknown()).optional(),
   currency: z.string().trim().length(3).default("USD"),
   // Staff-entered commercial terms when no quote is attached.
   subtotalCents: z.number().int().min(0).default(0),
@@ -417,6 +439,14 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
   if (data.travelStart && data.travelEnd && !(new Date(data.travelStart) < new Date(data.travelEnd))) {
     throw new BookingError("Travel must end after it starts");
   }
+  if (data.source === "CUSTOM") {
+    const itinerary = data.customItinerary ?? {};
+    const destinations = Array.isArray(itinerary.destinations) ? itinerary.destinations : [];
+    const notes = typeof itinerary.notes === "string" ? itinerary.notes.trim() : "";
+    if (destinations.length === 0 && notes.length < 10) {
+      throw new BookingError("Custom designs need destinations or notes (10+ characters)");
+    }
+  }
 
   return prisma.$transaction(async (tx) => {
     if (data.idempotencyKey) {
@@ -474,15 +504,33 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
             customerPhone: data.customerPhone ?? null,
             tourId: data.tourId ?? null,
             quoteId,
-            status: "INQUIRY",
+            source: data.source,
+            status: "NEW",
             currency: data.currency,
             ...totals,
             paidCents: 0,
             travelStart: data.travelStart ? new Date(data.travelStart) : null,
             travelEnd: data.travelEnd ? new Date(data.travelEnd) : null,
+            flexibleDates: data.flexibleDates,
             adults: data.adults,
             children: data.children,
             infants: data.infants,
+            childrenAges: data.childrenAges,
+            nationality: data.nationality ?? null,
+            arrivalFlight: data.arrivalFlight ?? null,
+            departureFlight: data.departureFlight ?? null,
+            airport: data.airport ?? null,
+            accommodationTier: data.accommodationTier ?? null,
+            budgetRange: data.budgetRange ?? null,
+            interests: data.interests,
+            specialRequests: data.specialRequests ?? null,
+            occasion: data.occasion ?? null,
+            pickupLocation: data.pickupLocation ?? null,
+            contactChannel: data.contactChannel ?? null,
+            customItinerary:
+              data.customItinerary === undefined
+                ? undefined
+                : (JSON.parse(JSON.stringify(data.customItinerary)) as Prisma.InputJsonValue),
             snapshot,
             idempotencyKey: data.idempotencyKey ?? null,
             createdById: actor?.id ?? null,
@@ -496,7 +544,7 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
           },
           include: { travellers: true, holds: true },
         });
-        await recordHistory(tx, booking.id, null, "INQUIRY", actor?.id ?? null, "Booking created");
+        await recordHistory(tx, booking.id, null, "NEW", actor?.id ?? null, "Booking submitted");
 
         // Every hold passes through the locked availability check — no
         // unguarded inventory writes anywhere in the codebase.

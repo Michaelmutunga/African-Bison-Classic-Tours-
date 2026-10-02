@@ -38,7 +38,7 @@ export function SafariWorkspace({ booking }: { booking: PortalBooking }) {
     dayNumber !== null ? booking.tour?.days.find((d) => d.dayNumber === dayNumber) : undefined;
   const countries = [...new Set((booking.tour?.destinations ?? []).map((d) => d.country))];
   const balance = Math.max(0, booking.totalCents - booking.paidCents);
-  const travellersEditable = ["INQUIRY", "HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP"].includes(
+  const travellersEditable = ["NEW", "INQUIRY", "HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP"].includes(
     booking.status,
   );
   const payable = ["HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP"].includes(booking.status);

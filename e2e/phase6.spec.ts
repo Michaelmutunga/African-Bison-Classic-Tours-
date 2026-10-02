@@ -18,7 +18,7 @@ test("guest checkout creates a booking with a reference", async ({ request }) =>
   expect(response.status()).toBe(201);
   const body = (await response.json()) as { reference: string; status: string };
   expect(body.reference).toMatch(/^ABCT-\d{4}-/);
-  expect(body.status).toBe("INQUIRY");
+  expect(body.status).toBe("NEW");
 
   // Duplicate key returns the original, not a second booking.
   const retry = await request.post("/api/bookings", {

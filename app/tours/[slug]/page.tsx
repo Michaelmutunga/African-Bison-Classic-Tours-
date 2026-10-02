@@ -183,7 +183,7 @@ export default async function TourDetailPage({
                   and lodge rates change by season.
                 </p>
                 <div className="mt-4 flex flex-col gap-2">
-                  <ButtonLink href={`/contact?tour=${tour.slug}`}>Request this safari</ButtonLink>
+                  <ButtonLink href={`/request?tour=${tour.slug}`}>Request this safari</ButtonLink>
                   <ButtonLink href="/tours" variant="secondary">
                     All safaris
                   </ButtonLink>

@@ -66,11 +66,11 @@ describe("references and state machine", () => {
     // History recorded creation.
     const history = await prisma.bookingStatusHistory.findMany({ where: { bookingId: booking.id } });
     expect(history).toHaveLength(1);
-    expect(history[0]).toMatchObject({ from: null, to: "INQUIRY" });
+    expect(history[0]).toMatchObject({ from: null, to: "NEW" });
     await cancelBooking(admin, booking.id, "test cleanup");
   });
 
-  it("walks the legal path with history at every step", async () => {
+  it("enters at NEW and walks the legal path with history at every step", async () => {
     const booking = await guestBooking();
     const path = ["HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP", "ON_SAFARI", "COMPLETED"] as const;
     for (const status of path) {
@@ -80,7 +80,7 @@ describe("references and state machine", () => {
       where: { bookingId: booking.id },
       orderBy: { createdAt: "asc" },
     });
-    expect(history.map((h) => h.to)).toEqual(["INQUIRY", ...path]);
+    expect(history.map((h) => h.to)).toEqual(["NEW", ...path]);
     expect(history.every((h) => h.reason !== null)).toBe(true);
   });
 
@@ -268,7 +268,7 @@ describe("quote conversion", () => {
       quoteId: quote.id,
     });
     expect(booking.totalCents).toBe(quote.totalCents);
-    expect(booking.status).toBe("INQUIRY");
+    expect(booking.status).toBe("NEW");
     expect((await prisma.quote.findUniqueOrThrow({ where: { id: quote.id } })).status).toBe("CONVERTED");
     await expect(
       createBooking(null, {

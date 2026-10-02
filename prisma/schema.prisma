@@ -315,6 +315,7 @@ model QuoteItem {
 // ---------------------------------------------------------------------------
 
 enum BookingStatus {
+  NEW
   INQUIRY
   QUOTE_DRAFT
   QUOTE_SENT
@@ -337,6 +338,11 @@ enum HoldStatus {
   EXPIRED
 }
 
+enum BookingSource {
+  TOUR
+  CUSTOM
+}
+
 model Booking {
   id             String        @id @default(cuid())
   reference      String        @unique
@@ -345,6 +351,8 @@ model Booking {
   customerName   String
   customerEmail  String
   customerPhone  String?
+  // Marketplace submission origin: a listed tour or a custom design.
+  source         BookingSource @default(TOUR)
   tourId         String?
   tour           TourProduct?  @relation(fields: [tourId], references: [id])
   quoteId        String?       @unique
@@ -361,6 +369,24 @@ model Booking {
   adults         Int           @default(1)
   children       Int           @default(0)
   infants        Int           @default(0)
+  // Submission details (Phase 4). Travel dates stay separate from the
+  // booking reference; everything here is planner input, not promise.
+  nationality      String?
+  flexibleDates    Boolean   @default(false)
+  childrenAges     Int[]     @default([])
+  arrivalFlight    String?
+  departureFlight  String?
+  airport          String?
+  accommodationTier String?
+  budgetRange      String?
+  interests        String[]  @default([])
+  specialRequests  String?
+  occasion         String?
+  pickupLocation   String?
+  contactChannel   String?
+  // Custom designs carry the structured request until Phase 6 parses it
+  // into service lines (tour bookings leave this null).
+  customItinerary  Json?
   // Commercial snapshot copied from the quote (or staff-entered terms).
   snapshot       Json?
   idempotencyKey String?       @unique

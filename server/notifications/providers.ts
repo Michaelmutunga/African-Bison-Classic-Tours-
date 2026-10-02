@@ -96,7 +96,36 @@ class DisabledChatProvider implements ChatProvider {
   }
 }
 
+/**
+ * Optional generic WhatsApp webhook hook (marketplace Phase 4). When
+ * WHATSAPP_HOOK_URL is set, WhatsApp notifications POST as JSON instead of
+ * failing closed — no vendor SDK, works with n8n/Zapier/Meta bridges.
+ * Optional WHATSAPP_HOOK_SECRET signs the body (HMAC-SHA256 hex).
+ */
+class WebhookChatProvider implements ChatProvider {
+  readonly name = "whatsapp" as const;
+  configured(): boolean {
+    return !!process.env.WHATSAPP_HOOK_URL;
+  }
+  async send(message: ChatMessage): Promise<{ providerRef: string }> {
+    const url = process.env.WHATSAPP_HOOK_URL;
+    if (!url) throw new ProviderError("WHATSAPP_HOOK_URL is not configured");
+    const body = JSON.stringify({ to: message.to, body: message.body, at: new Date().toISOString() });
+    const secret = process.env.WHATSAPP_HOOK_SECRET;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (secret) {
+      const { createHmac } = await import("node:crypto");
+      headers["X-Webhook-Signature"] = createHmac("sha256", secret).update(body).digest("hex");
+    }
+    const response = await fetch(url, { method: "POST", headers, body });
+    if (!response.ok) throw new ProviderError(`WhatsApp hook rejected the message (${response.status})`);
+    return { providerRef: `hook_${Date.now().toString(36)}` };
+  }
+}
+
 export function getWhatsAppProvider(): ChatProvider {
+  const hook = new WebhookChatProvider();
+  if (hook.configured()) return hook;
   return new DisabledChatProvider("whatsapp");
 }
 

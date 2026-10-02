@@ -9,6 +9,7 @@ import type { BookingStatus } from "@prisma/client";
 export const dynamic = "force-dynamic";
 
 const PIPELINE: BookingStatus[] = [
+  "NEW",
   "INQUIRY",
   "HOLD",
   "AWAITING_DEPOSIT",

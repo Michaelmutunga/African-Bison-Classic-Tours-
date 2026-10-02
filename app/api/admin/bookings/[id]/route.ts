@@ -6,6 +6,7 @@ import { errorResponse, readJson, requestActor } from "@/server/http";
 
 const statusSchema = z.object({
   status: z.enum([
+    "NEW",
     "INQUIRY",
     "QUOTE_DRAFT",
     "QUOTE_SENT",

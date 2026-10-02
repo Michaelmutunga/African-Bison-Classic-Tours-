@@ -67,6 +67,7 @@ export function bookingChecklist(booking: ChecklistInput): ChecklistItem[] {
 }
 
 const STAGE_ORDER = [
+  "NEW",
   "INQUIRY",
   "QUOTE_DRAFT",
   "QUOTE_SENT",

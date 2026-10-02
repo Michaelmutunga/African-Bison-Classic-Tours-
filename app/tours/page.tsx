@@ -79,6 +79,7 @@ export default async function ToursPage({
               }
             : null
         }
+        videoSrc="/video/hero.mp4"
         tourCount={showcase.length}
         regionCount={categories.length}
         minDays={minDays}

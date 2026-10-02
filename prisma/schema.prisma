@@ -36,6 +36,7 @@ model User {
   updatedAt    DateTime  @updatedAt
   sessions     Session[]
   bookings     Booking[]
+  assignedBookings Booking[] @relation("AssignedBookings")
 
   @@index([role])
 }
@@ -343,6 +344,12 @@ enum BookingSource {
   CUSTOM
 }
 
+enum BookingPriority {
+  NORMAL
+  HIGH
+  URGENT
+}
+
 model Booking {
   id             String        @id @default(cuid())
   reference      String        @unique
@@ -353,6 +360,10 @@ model Booking {
   customerPhone  String?
   // Marketplace submission origin: a listed tour or a custom design.
   source         BookingSource @default(TOUR)
+  // Operations ownership (Phase 5 workspace).
+  assignedAdminId String?
+  assignedAdmin   User?         @relation("AssignedBookings", fields: [assignedAdminId], references: [id])
+  priority       BookingPriority @default(NORMAL)
   tourId         String?
   tour           TourProduct?  @relation(fields: [tourId], references: [id])
   quoteId        String?       @unique
@@ -953,6 +964,7 @@ model SupplierLock {
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
   tokens     SupplierToken[]
+  serviceLines ServiceLine[]
 
   @@index([supplierId, status])
   @@index([supplierId, startsAt, endsAt])
@@ -1067,6 +1079,13 @@ model ServiceLine {
   quantity          Int        @default(1)
   pax               Int?
   unit              RateUnit
+  // Service window + place: feeds supplier suggestions and locks.
+  startsAt          DateTime?
+  endsAt            DateTime?
+  location          String?
+  // Fulfilment link (Phase 6 manages the lock lifecycle).
+  lockId            String?
+  lock              SupplierLock? @relation(fields: [lockId], references: [id])
   currency          String     @default("USD")
   // Total supplier cost for the line, in minor units of `currency`.
   costCents         Int

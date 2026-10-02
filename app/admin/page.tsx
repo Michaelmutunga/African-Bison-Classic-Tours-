@@ -3,12 +3,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardBody } from "@/components/ui/card";
 import { formatMoney } from "@/lib/money";
 import { dashboardStats } from "@/server/operations";
+import { inboxCounts } from "@/server/workspace";
 import { requestActor } from "@/server/http";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
-  const stats = await dashboardStats(await requestActor());
+  const actor = await requestActor();
+  const [stats, inbox] = await Promise.all([dashboardStats(actor), inboxCounts(actor)]);
 
   const tiles = [
     { label: "Active bookings", value: String(stats.activeBookings) },
@@ -39,6 +41,34 @@ export default async function AdminDashboardPage() {
           <strong className="type-numeric">{formatMoney(stats.outstandingCents, "USD")}</strong>{" "}
           (mixed currencies shown in USD cents — per-booking pages show true currency).
         </p>
+      </section>
+
+      <section aria-label="Needs action">
+        <h2 className="type-h3">Needs action</h2>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link href="/admin/bookings?status=NEW">
+            <Badge tone={inbox.newRequests > 0 ? "clay" : "neutral"}>New requests · {inbox.newRequests}</Badge>
+          </Link>
+          <Link href="/admin/bookings?status=QUOTE_SENT">
+            <Badge tone={inbox.quotesAwaiting > 0 ? "sand" : "neutral"}>Quotes awaiting answer · {inbox.quotesAwaiting}</Badge>
+          </Link>
+          <Badge tone={inbox.supplierReplies > 0 ? "sand" : "neutral"}>Supplier replies pending · {inbox.supplierReplies}</Badge>
+          <Link href="/admin/bookings?status=AWAITING_DEPOSIT">
+            <Badge tone={inbox.paymentsOverdue > 0 ? "clay" : "neutral"}>Deposits overdue · {inbox.paymentsOverdue}</Badge>
+          </Link>
+        </div>
+        {inbox.tripsSoon.length > 0 ? (
+          <ul className="type-small mt-3 grid gap-1 text-ink/80">
+            {inbox.tripsSoon.map((trip) => (
+              <li key={trip.id}>
+                <Link href={`/admin/bookings/${trip.id}`} className="underline underline-offset-4">
+                  {trip.reference}
+                </Link>{" "}
+                · {trip.detail}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
 
       <section aria-label="Booking pipeline">

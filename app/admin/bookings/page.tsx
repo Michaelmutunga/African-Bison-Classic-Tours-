@@ -88,6 +88,8 @@ export default async function AdminBookingsPage({
                         </Link>
                         <p className="type-caption mt-0.5 text-ink/65">
                           {booking.customerName} · {booking.adults + booking.children + booking.infants} pax
+                          {booking.assignedAdmin ? ` · ${booking.assignedAdmin.name}` : " · unassigned"}
+                          {booking.priority !== "NORMAL" ? ` · ${booking.priority}` : ""}
                         </p>
                         <p className="mt-1">
                           <Badge tone="neutral">{booking.tour?.title ?? "Custom"}</Badge>

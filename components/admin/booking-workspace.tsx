@@ -362,3 +362,186 @@ export function DocumentAttach({ bookingId }: { bookingId: string }) {
     </form>
   );
 }
+
+export function AssignAdminForm({
+  bookingId,
+  currentId,
+  staff,
+  priority,
+}: {
+  bookingId: string;
+  currentId: string | null;
+  staff: { id: string; name: string; role: string }[];
+  priority: string;
+}) {
+  const { error, busy, run } = useAction();
+  const [adminId, setAdminId] = useState(currentId ?? "");
+  const [level, setLevel] = useState(priority);
+  return (
+    <form
+      aria-label="Assign booking owner"
+      className="grid gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void run(() =>
+          api(`/api/admin/bookings/${bookingId}`, "PATCH", {
+            assignedAdminId: adminId || null,
+            priority: level,
+            reason: "Owner/priority set from workspace",
+          }),
+        );
+      }}
+    >
+      <ActionError message={error} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div>
+          <Label htmlFor={`owner-${bookingId}`}>Owner</Label>
+          <Select id={`owner-${bookingId}`} value={adminId} onChange={(e) => setAdminId(e.target.value)}>
+            <option value="">Unassigned</option>
+            {staff.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name} ({member.role})
+              </option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor={`priority-${bookingId}`}>Priority</Label>
+          <Select id={`priority-${bookingId}`} value={level} onChange={(e) => setLevel(e.target.value)}>
+            <option value="NORMAL">Normal</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
+          </Select>
+        </div>
+      </div>
+      <Button type="submit" size="sm" disabled={busy}>
+        {busy ? <Spinner label="Saving" /> : "Save owner & priority"}
+      </Button>
+    </form>
+  );
+}
+
+export function ServiceLineForm({ bookingId }: { bookingId: string }) {
+  const { error, busy, run } = useAction();
+  const [serviceName, setServiceName] = useState("");
+  const [serviceType, setServiceType] = useState("airport-transfer");
+  const [quantity, setQuantity] = useState("1");
+  const [location, setLocation] = useState("");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
+  const [costCents, setCostCents] = useState("");
+  return (
+    <form
+      aria-label="Add service line"
+      className="grid gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!serviceName.trim()) return;
+        void run(() =>
+          api(`/api/admin/bookings/${bookingId}/service-lines`, "POST", {
+            serviceName: serviceName.trim(),
+            serviceType,
+            unit: "PER_GROUP",
+            quantity: Math.max(1, Number(quantity) || 1),
+            ...(location.trim() ? { location: location.trim() } : {}),
+            ...(startsAt ? { startsAt: new Date(startsAt).toISOString() } : {}),
+            ...(endsAt ? { endsAt: new Date(endsAt).toISOString() } : {}),
+            ...(costCents.trim() ? { costCents: Math.max(0, Math.round(Number(costCents))) } : {}),
+          }).then(() => {
+            setServiceName("");
+            setQuantity("1");
+            setLocation("");
+            setStartsAt("");
+            setEndsAt("");
+            setCostCents("");
+          }),
+        );
+      }}
+    >
+      <ActionError message={error} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div>
+          <Label htmlFor={`line-name-${bookingId}`}>Service</Label>
+          <Input id={`line-name-${bookingId}`} value={serviceName} onChange={(e) => setServiceName(e.target.value)} placeholder="e.g. Airport pickup, 2 Mara nights" required />
+        </div>
+        <div>
+          <Label htmlFor={`line-type-${bookingId}`}>Type</Label>
+          <Select id={`line-type-${bookingId}`} value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
+            {["airport-transfer", "hotel-lodge-camp", "driver-guide", "vehicle-hire", "park-activity-operator", "flights-charters", "other"].map((type) => (
+              <option key={type} value={type}>{type}</option>
+            ))}
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor={`line-qty-${bookingId}`}>Quantity</Label>
+          <Input id={`line-qty-${bookingId}`} type="number" min={1} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor={`line-loc-${bookingId}`}>Location</Label>
+          <Input id={`line-loc-${bookingId}`} value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Nairobi, Mara" />
+        </div>
+        <div>
+          <Label htmlFor={`line-from-${bookingId}`}>From</Label>
+          <Input id={`line-from-${bookingId}`} type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+        </div>
+        <div>
+          <Label htmlFor={`line-to-${bookingId}`}>To</Label>
+          <Input id={`line-to-${bookingId}`} type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+        </div>
+        <div className="sm:col-span-2">
+          <Label htmlFor={`line-cost-${bookingId}`}>Supplier cost, USD cents (custom line; leave empty to cost from a rate later)</Label>
+          <Input id={`line-cost-${bookingId}`} type="number" min={0} value={costCents} onChange={(e) => setCostCents(e.target.value)} placeholder="e.g. 4000" />
+        </div>
+      </div>
+      <Button type="submit" size="sm" disabled={busy}>
+        {busy ? <Spinner label="Adding" /> : "Add service line"}
+      </Button>
+    </form>
+  );
+}
+
+export function AssignSupplierButton({
+  bookingId,
+  lineId,
+  supplierId,
+  rateId,
+  label,
+}: {
+  bookingId: string;
+  lineId: string;
+  supplierId: string;
+  rateId: string;
+  label: string;
+}) {
+  const { error, busy, run } = useAction();
+  return (
+    <span className="inline-flex items-center gap-2">
+      {error ? <span className="type-caption text-clay-deep">{error}</span> : null}
+      <Button
+        size="sm"
+        variant="secondary"
+        disabled={busy}
+        onClick={() => run(() => api(`/api/admin/bookings/${bookingId}/service-lines/${lineId}`, "PATCH", { supplierId, rateId }))}
+      >
+        {label}
+      </Button>
+    </span>
+  );
+}
+
+export function RemoveLineButton({ bookingId, lineId }: { bookingId: string; lineId: string }) {
+  const { error, busy, run } = useAction();
+  return (
+    <span className="inline-flex items-center gap-2">
+      {error ? <span className="type-caption text-clay-deep">{error}</span> : null}
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={busy}
+        onClick={() => run(() => api(`/api/admin/bookings/${bookingId}/service-lines/${lineId}`, "DELETE"))}
+      >
+        Remove
+      </Button>
+    </span>
+  );
+}

@@ -597,6 +597,8 @@ const modifySchema = z.object({
   infants: z.number().int().min(0).max(6).optional(),
   travellers: z.array(travellerInput).max(24).optional(),
   customerPhone: z.string().trim().max(40).nullable().optional(),
+  assignedAdminId: z.string().cuid().nullable().optional(),
+  priority: z.enum(["NORMAL", "HIGH", "URGENT"]).optional(),
   reason: z.string().trim().max(500).optional(),
 });
 
@@ -633,8 +635,18 @@ export async function modifyBooking(actor: Actor | null, id: string, input: unkn
         ...(data.children !== undefined ? { children: data.children } : {}),
         ...(data.infants !== undefined ? { infants: data.infants } : {}),
         ...(data.customerPhone !== undefined ? { customerPhone: data.customerPhone } : {}),
+        ...(data.priority !== undefined ? { priority: data.priority } : {}),
       },
     });
+    if (data.assignedAdminId !== undefined) {
+      if (data.assignedAdminId) {
+        const admin = await tx.user.findUnique({ where: { id: data.assignedAdminId } });
+        if (!admin || admin.role === "CUSTOMER" || !admin.isActive) {
+          throw new BookingError("Assignee must be an active staff member");
+        }
+      }
+      await tx.booking.update({ where: { id }, data: { assignedAdminId: data.assignedAdminId } });
+    }
     if (data.travellers) {
       await tx.bookingTraveller.deleteMany({ where: { bookingId: id } });
       await tx.bookingTraveller.createMany({
@@ -806,8 +818,11 @@ export async function listBookings(actor: Actor | null, status?: BookingStatus, 
           }
         : {}),
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
     take: 100,
-    include: { tour: { select: { slug: true, title: true } } },
+    include: {
+      tour: { select: { slug: true, title: true } },
+      assignedAdmin: { select: { id: true, name: true } },
+    },
   });
 }

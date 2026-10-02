@@ -29,6 +29,23 @@ Roles: `SUPER_ADMIN`, `ADMIN`, `CONTENT_MANAGER` (write + publish),
   calendar independently flags any that slip through.
 - No demo fleet is seeded — create the real vehicles and guides here.
 
+## Booking workspace (marketplace Phase 5)
+
+- `/admin` — “Needs action” counters (new requests, quotes awaiting answer,
+  supplier replies pending, overdue deposits, trips starting within 14 days).
+- `/admin/bookings/[id]` — single-screen workspace: header (reference,
+  status, age, owner, priority, next action), client + past bookings, trip
+  request, costed service lines with margin, supplier suggestions for
+  unassigned lines, supplier locks, quote + live pricing totals, payment
+  schedule vs received, transfers, travellers, documents, client thread,
+  internal notes, merged timeline.
+- Assign an owner + priority from the header; unassigned and urgent surface
+  first in the pipeline (priority-ordered).
+- Service lines re-price on every edit against live markup rules; money
+  fields are never hand-edited. Removing a line is audit-logged.
+- Supplier assignment picks a suggested rate (cheapest first, capacity
+  checked); availability requests and lock lifecycles arrive in Phase 6.
+
 ## Catalogue workflow
 
 - Tours are created as **drafts** (`published: false`).

@@ -521,8 +521,25 @@ export const serviceLineInput = z.object({
   currency: z.enum(["KES", "USD"]).default("USD"),
   quantity: z.number().int().min(1).max(1000).default(1),
   pax: z.number().int().min(1).max(60).optional(),
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().optional(),
+  location: z.string().trim().max(80).optional(),
   lineMarkupBps: z.number().int().min(0).max(100_000).optional(),
   lineMarkupCents: z.number().int().min(0).max(100_000_000).optional(),
+});
+
+export const serviceLineUpdateInput = z.object({
+  serviceName: z.string().trim().min(2).max(160).optional(),
+  supplierId: z.string().cuid().nullable().optional(),
+  rateId: z.string().cuid().nullable().optional(),
+  quantity: z.number().int().min(1).max(1000).optional(),
+  pax: z.number().int().min(1).max(60).nullable().optional(),
+  startsAt: z.string().datetime().nullable().optional(),
+  endsAt: z.string().datetime().nullable().optional(),
+  location: z.string().trim().max(80).nullable().optional(),
+  lockId: z.string().cuid().nullable().optional(),
+  lineMarkupBps: z.number().int().min(0).max(100_000).nullable().optional(),
+  lineMarkupCents: z.number().int().min(0).max(100_000_000).nullable().optional(),
 });
 
 function fxOrThrow(rates: Record<string, number>, currency: string): number {
@@ -530,6 +547,104 @@ function fxOrThrow(rates: Record<string, number>, currency: string): number {
   const rate = rates[currency];
   if (rate === undefined) throw new MarketplacePricingError(`No FX rate for ${currency}`);
   return rate;
+}
+
+interface LineCostSpec {
+  serviceName: string;
+  serviceType: string;
+  supplierId: string | null;
+  rateId: string | null;
+  /** Scaled line total in the cost currency (rate math done by the caller). */
+  scaledCost: number;
+  costCurrency: string;
+  quantity: number;
+  pax?: number;
+  lineMarkupBps?: number;
+  lineMarkupCents?: number;
+  lineMarkupCurrency?: string;
+  bookingCurrency: string;
+  config: PricingConfig;
+}
+
+interface ComputedLine {
+  costCents: number;
+  fxRate: number | null;
+  markupMode: "PERCENT" | "FIXED";
+  markupBps: number | null;
+  markupFixedCents: number | null;
+  markupSource: string;
+  markupRuleId: string | null;
+  clientPriceCents: number;
+  incomeCents: number;
+}
+
+/** Shared repricing core: scaled cost -> converted -> marked up -> rounded. */
+function computePricedLine(spec: LineCostSpec): ComputedLine {
+  const { config, bookingCurrency } = spec;
+  const toBookingCurrency = (fixedCents: number, fromCurrency: string): number =>
+    fromCurrency === bookingCurrency
+      ? fixedCents
+      : convertCost(fixedCents, fxOrThrow(config.fxRates, fromCurrency), fxOrThrow(config.fxRates, bookingCurrency));
+  const asPriced = (rule: ConfiguredMarkup): MarkupCandidate =>
+    rule.mode === "FIXED"
+      ? { mode: "FIXED", fixedCents: toBookingCurrency(rule.fixedCents ?? 0, rule.ruleCurrency) }
+      : { mode: "PERCENT", percentBps: rule.percentBps ?? 0 };
+
+  const supplierRule = spec.supplierId ? config.supplierRules[spec.supplierId] : undefined;
+  const typeRule = config.serviceTypeRules[spec.serviceType];
+  const priced = priceBookingLines({
+    // A single synthetic line: scaled cost expressed as 1 unit so the pure
+    // engine converts, marks up and rounds exactly once.
+    lines: [
+      {
+        serviceName: spec.serviceName,
+        serviceType: spec.serviceType,
+        supplierId: spec.supplierId ?? undefined,
+        rateId: spec.rateId ?? undefined,
+        unit: "PER_GROUP",
+        unitCostCents: convertCost(
+          spec.scaledCost,
+          fxOrThrow(config.fxRates, spec.costCurrency),
+          fxOrThrow(config.fxRates, bookingCurrency),
+        ),
+        quantity: 1,
+        costCurrency: bookingCurrency,
+        lineMarkup:
+          spec.lineMarkupBps !== undefined
+            ? { mode: "PERCENT", percentBps: spec.lineMarkupBps }
+            : spec.lineMarkupCents !== undefined
+              ? { mode: "FIXED", fixedCents: toBookingCurrency(spec.lineMarkupCents, spec.lineMarkupCurrency ?? bookingCurrency) }
+              : undefined,
+      },
+    ],
+    currency: bookingCurrency,
+    fxRates: config.fxRates,
+    roundingIncrement: config.roundingIncrement,
+    supplierRules: supplierRule && spec.supplierId ? { [spec.supplierId]: asPriced(supplierRule) } : {},
+    serviceTypeRules: typeRule ? { [spec.serviceType]: asPriced(typeRule) } : {},
+    globalMarkup: asPriced(config.globalMarkup),
+    taxes: [],
+  });
+  const line = priced.lines[0];
+  if (!line) throw new MarketplacePricingError("Pricing produced no lines");
+  return {
+    costCents: line.costCents,
+    fxRate: spec.costCurrency === bookingCurrency ? null : fxOrThrow(config.fxRates, bookingCurrency),
+    markupMode: line.markup.mode,
+    markupBps: line.markup.mode === "PERCENT" ? (line.markup.percentBps ?? 0) : null,
+    markupFixedCents: line.markup.mode === "FIXED" ? (line.markup.fixedCents ?? 0) : null,
+    markupSource: line.markup.source,
+    markupRuleId:
+      line.markup.source === "SUPPLIER" && spec.supplierId
+        ? (supplierRule?.ruleId ?? null)
+        : line.markup.source === "SERVICE_TYPE"
+          ? (typeRule?.ruleId ?? null)
+          : line.markup.source === "GLOBAL"
+            ? config.globalMarkup.ruleId
+            : null,
+    clientPriceCents: line.clientPriceCents,
+    incomeCents: line.incomeCents,
+  };
 }
 
 /**
@@ -544,12 +659,15 @@ export async function addServiceLine(actor: Actor | null, bookingId: string, inp
   if (data.lineMarkupBps !== undefined && data.lineMarkupCents !== undefined) {
     throw new MarketplacePricingError("Choose one line markup mode: percent or fixed");
   }
+  if (data.startsAt && data.endsAt && !(new Date(data.startsAt) < new Date(data.endsAt))) {
+    throw new MarketplacePricingError("Service must end after it starts");
+  }
 
   return prisma.$transaction(async (tx) => {
     const booking = await tx.booking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundError("Booking");
 
-    // Normalise cost to a scaled total in the booking currency.
+    // Normalise cost to a scaled total in the cost currency.
     let scaledCost: number;
     let costCurrency: string;
     let rateId: string | null = null;
@@ -576,53 +694,22 @@ export async function addServiceLine(actor: Actor | null, bookingId: string, inp
     }
 
     const config = await loadPricingConfig();
-    const toBookingCurrency = (fixedCents: number, fromCurrency: string): number =>
-      fromCurrency === booking.currency
-        ? fixedCents
-        : convertCost(fixedCents, fxOrThrow(config.fxRates, fromCurrency), fxOrThrow(config.fxRates, booking.currency));
-    const asPriced = (rule: ConfiguredMarkup): MarkupCandidate =>
-      rule.mode === "FIXED"
-        ? { mode: "FIXED", fixedCents: toBookingCurrency(rule.fixedCents ?? 0, rule.ruleCurrency) }
-        : { mode: "PERCENT", percentBps: rule.percentBps ?? 0 };
-
-    const supplierRule = supplierId ? config.supplierRules[supplierId] : undefined;
-    const typeRule = config.serviceTypeRules[data.serviceType];
-    const priced = priceBookingLines({
-      // A single synthetic line: scaled cost expressed as 1 unit so the
-      // pure engine converts, marks up and rounds exactly once.
-      lines: [
-        {
-          serviceName: data.serviceName,
-          serviceType: data.serviceType,
-          supplierId: supplierId ?? undefined,
-          rateId: rateId ?? undefined,
-          unit: "PER_GROUP",
-          unitCostCents: convertCost(
-            scaledCost,
-            fxOrThrow(config.fxRates, costCurrency),
-            fxOrThrow(config.fxRates, booking.currency),
-          ),
-          quantity: 1,
-          costCurrency: booking.currency,
-          lineMarkup:
-            data.lineMarkupBps !== undefined
-              ? { mode: "PERCENT", percentBps: data.lineMarkupBps }
-              : data.lineMarkupCents !== undefined
-                ? { mode: "FIXED", fixedCents: toBookingCurrency(data.lineMarkupCents, data.currency) }
-                : undefined,
-        },
-      ],
-      currency: booking.currency,
-      fxRates: config.fxRates,
-      roundingIncrement: config.roundingIncrement,
-      supplierRules: supplierRule ? { [supplierId as string]: asPriced(supplierRule) } : {},
-      serviceTypeRules: typeRule ? { [data.serviceType]: asPriced(typeRule) } : {},
-      globalMarkup: asPriced(config.globalMarkup),
-      taxes: [],
+    const computed = computePricedLine({
+      serviceName: data.serviceName,
+      serviceType: data.serviceType,
+      supplierId,
+      rateId,
+      scaledCost,
+      costCurrency,
+      quantity: data.quantity,
+      pax: data.pax,
+      lineMarkupBps: data.lineMarkupBps,
+      lineMarkupCents: data.lineMarkupCents,
+      lineMarkupCurrency: data.currency,
+      bookingCurrency: booking.currency,
+      config,
     });
 
-    const line = priced.lines[0];
-    if (!line) throw new MarketplacePricingError("Pricing produced no lines");
     const aggregate = await tx.serviceLine.aggregate({ where: { bookingId }, _max: { seq: true } });
     const created = await tx.serviceLine.create({
       data: {
@@ -636,29 +723,124 @@ export async function addServiceLine(actor: Actor | null, bookingId: string, inp
         pax:
           data.unit === "PER_PERSON_PER_NIGHT" || data.unit === "PER_ACTIVITY" ? (data.pax ?? 1) : null,
         unit: data.unit,
+        startsAt: data.startsAt ? new Date(data.startsAt) : null,
+        endsAt: data.endsAt ? new Date(data.endsAt) : null,
+        location: data.location ?? null,
         currency: booking.currency,
-        costCents: line.costCents,
-        fxRate: costCurrency === booking.currency ? null : fxOrThrow(config.fxRates, booking.currency),
-        markupMode: line.markup.mode,
-        markupBps: line.markup.mode === "PERCENT" ? (line.markup.percentBps ?? 0) : null,
-        markupFixedCents: line.markup.mode === "FIXED" ? (line.markup.fixedCents ?? 0) : null,
-        markupSource: line.markup.source,
-        markupRuleId:
-          line.markup.source === "SUPPLIER" && supplierId
-            ? (supplierRule?.ruleId ?? null)
-            : line.markup.source === "SERVICE_TYPE"
-              ? (typeRule?.ruleId ?? null)
-              : line.markup.source === "GLOBAL"
-                ? config.globalMarkup.ruleId
-                : null,
-        clientPriceCents: line.clientPriceCents,
-        incomeCents: line.incomeCents,
+        costCents: computed.costCents,
+        fxRate: computed.fxRate,
+        markupMode: computed.markupMode,
+        markupBps: computed.markupBps,
+        markupFixedCents: computed.markupFixedCents,
+        markupSource: computed.markupSource,
+        markupRuleId: computed.markupRuleId,
+        clientPriceCents: computed.clientPriceCents,
+        incomeCents: computed.incomeCents,
       },
     });
     await tx.auditLog.create({
       data: { actor: actor?.id ?? "system", action: "service-line.added", resource: "booking", resourceId: bookingId },
     });
     return created;
+  });
+}
+
+/**
+ * Re-price a service line after staff edits (supplier, rate, quantity,
+ * dates, markup override...). Money fields always recompute — never edited.
+ */
+export async function updateServiceLine(actor: Actor | null, id: string, input: unknown) {
+  gateOps(actor);
+  const data = serviceLineUpdateInput.parse(input);
+  if (data.lineMarkupBps !== undefined && data.lineMarkupBps !== null && data.lineMarkupCents !== undefined && data.lineMarkupCents !== null) {
+    throw new MarketplacePricingError("Choose one line markup mode: percent or fixed");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.serviceLine.findUnique({ where: { id }, include: { booking: true } });
+    if (!existing) throw new NotFoundError("Service line");
+
+    const serviceName = data.serviceName ?? existing.serviceName;
+    const quantity = data.quantity ?? existing.quantity;
+    const pax = data.pax !== undefined ? data.pax : existing.pax;
+    const startsAt = data.startsAt !== undefined ? (data.startsAt ? new Date(data.startsAt) : null) : existing.startsAt;
+    const endsAt = data.endsAt !== undefined ? (data.endsAt ? new Date(data.endsAt) : null) : existing.endsAt;
+    if (startsAt && endsAt && !(startsAt < endsAt)) {
+      throw new MarketplacePricingError("Service must end after it starts");
+    }
+    const supplierId = data.supplierId !== undefined ? data.supplierId : existing.supplierId;
+    const rateId = data.rateId !== undefined ? data.rateId : existing.rateId;
+    const lockId = data.lockId !== undefined ? data.lockId : existing.lockId;
+    if (lockId) {
+      const lock = await tx.supplierLock.findUnique({ where: { id: lockId } });
+      if (!lock) throw new NotFoundError("Supplier lock");
+      if (lock.supplierId !== supplierId) {
+        throw new MarketplacePricingError("Lock belongs to a different supplier");
+      }
+    }
+
+    let scaledCost: number;
+    let costCurrency: string;
+    if (rateId) {
+      const rate = await tx.supplierRate.findUnique({ where: { id: rateId } });
+      if (!rate) throw new NotFoundError("Rate");
+      if (supplierId && supplierId !== rate.supplierId) {
+        throw new MarketplacePricingError("Supplier does not own this rate");
+      }
+      scaledCost = scaleLineCost({ unit: existing.unit, unitCostCents: rate.costCents, quantity, pax: pax ?? undefined });
+      costCurrency = rate.currency;
+    } else {
+      // Rate removed: re-price from the stored cost (already a line total).
+      scaledCost = existing.costCents;
+      costCurrency = existing.currency;
+    }
+
+    const config = await loadPricingConfig();
+    const computed = computePricedLine({
+      serviceName,
+      serviceType: existing.serviceType,
+      supplierId,
+      rateId,
+      scaledCost,
+      costCurrency,
+      quantity,
+      pax: pax ?? undefined,
+      lineMarkupBps: data.lineMarkupBps ?? undefined,
+      lineMarkupCents: data.lineMarkupCents ?? undefined,
+      lineMarkupCurrency: existing.currency,
+      bookingCurrency: existing.booking.currency,
+      config,
+    });
+
+    const updated = await tx.serviceLine.update({
+      where: { id },
+      data: {
+        serviceName,
+        supplierId,
+        rateId,
+        quantity,
+        pax,
+        startsAt,
+        endsAt,
+        location: data.location !== undefined ? data.location : existing.location,
+        lockId,
+        costCents: computed.costCents,
+        fxRate: computed.fxRate,
+        markupMode: computed.markupMode,
+        markupBps: computed.markupBps,
+        markupFixedCents: computed.markupFixedCents,
+        // Any edit re-costs the line against live rules (history preserved
+        // in the audit log, not in the row).
+        markupSource: computed.markupSource,
+        markupRuleId: computed.markupRuleId,
+        clientPriceCents: computed.clientPriceCents,
+        incomeCents: computed.incomeCents,
+      },
+    });
+    await tx.auditLog.create({
+      data: { actor: actor?.id ?? "system", action: "service-line.updated", resource: "booking", resourceId: existing.bookingId },
+    });
+    return updated;
   });
 }
 

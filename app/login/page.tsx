@@ -6,8 +6,8 @@ import { currentUser } from "@/lib/auth";
 import { Container } from "@/components/ui/layout";
 
 export const metadata: Metadata = {
-  title: "Sign in",
-  description: "Sign in to African Bison Classic Tours — customers and staff.",
+  title: "My safari login",
+  description: "Sign in to your African Bison Classic Tours safari portal.",
   robots: { index: false, follow: false },
 };
 
@@ -32,13 +32,18 @@ export default async function LoginPage({
 
   return (
     <Container className="max-w-md py-16">
-      <p className="type-label text-clay-deep">Welcome back</p>
-      <h1 className="type-h1 mt-2">Sign in</h1>
+      <p className="type-label text-clay-deep">My safari portal</p>
+      <h1 className="type-h1 mt-2">Customer sign in</h1>
       <p className="type-small mt-2 text-ink/70">
-        Customers land in their safari portal; staff land in operations.
+        Travellers sign in here to view itineraries, payments and trip documents.
+        African Bison staff should use the{" "}
+        <Link href="/staff/login" className="underline underline-offset-4">
+          staff login
+        </Link>
+        .
       </p>
       <div className="mt-6">
-        <LoginForm next={next?.startsWith("/") ? next : "/dashboard"} />
+        <LoginForm next={next?.startsWith("/") ? next : "/dashboard"} portal="customer" />
       </div>
       <p className="type-small mt-4 text-ink/70">
         New here?{" "}

@@ -9,10 +9,14 @@ const PORTAL_PREFIXES = ["/dashboard", "/my-safaris", "/safari", "/profile"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const needsAuth =
-    pathname.startsWith("/admin") || PORTAL_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-  if (needsAuth && !request.cookies.get("bison_session")?.value) {
-    const login = new URL("/login", request.url);
+  const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isPortal = PORTAL_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+  if ((isAdmin || isPortal) && !request.cookies.get("bison_session")?.value) {
+    // Separate entry points: staff deep-links land on the staff portal,
+    // customer deep-links land on the customer portal.
+    const login = new URL(isAdmin ? "/staff/login" : "/login", request.url);
     login.searchParams.set("next", pathname);
     return NextResponse.redirect(login);
   }

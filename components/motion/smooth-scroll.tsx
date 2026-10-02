@@ -14,6 +14,7 @@ const CALM_ROUTES = [
   "/profile",
   "/builder",
   "/login",
+  "/staff",
   "/register",
   "/invite",
 ];

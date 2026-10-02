@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   if (!user || user.role === "CUSTOMER") {
-    redirect("/login?next=/admin");
+    redirect("/staff/login?next=/admin");
   }
   const canCatalogue = hasPermission(user.role, "catalogue.write");
   const finance = canSeeFinance(user.role);

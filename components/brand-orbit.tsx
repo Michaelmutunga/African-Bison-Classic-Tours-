@@ -16,7 +16,7 @@ const RING_TEXT = "AFRICAN BISON CLASSIC TOURS • • • ";
 export function BrandOrbit({
   tone,
   badgeClassName,
-  logoSize = 48,
+  logoSize = 72,
 }: {
   tone: string;
   badgeClassName?: string;
@@ -32,7 +32,7 @@ export function BrandOrbit({
       tone={tone}
       ringLength={232}
       ringClassName="font-display italic"
-      className={cn("h-[84px] w-[84px]", badgeClassName)}
+      className={cn("h-[112px] w-[112px]", badgeClassName)}
       center={
         <Image
           src="/images/brand/logo-192.png"

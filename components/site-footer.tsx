@@ -18,9 +18,10 @@ const COMPANY = [
   { href: "/faq", label: "FAQ" },
   { href: "/travel-information", label: "Travel information" },
   { href: "/contact", label: "Contact" },
-  { href: "/login", label: "Sign in" },
+  { href: "/login", label: "My safari login" },
   { href: "/register", label: "Create account" },
   { href: "/dashboard", label: "My safaris" },
+  { href: "/staff/login", label: "Staff login" },
 ] as const;
 
 export function SiteFooter() {

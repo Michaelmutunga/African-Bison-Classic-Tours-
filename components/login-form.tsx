@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/field";
 import { ErrorState, Spinner } from "@/components/ui/states";
 
-export function LoginForm({ next }: { next: string }) {
+export function LoginForm({ next, portal = "customer" }: { next: string; portal?: "customer" | "staff" }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -41,18 +41,19 @@ export function LoginForm({ next }: { next: string }) {
         setSending(false);
         return;
       }
-      // Staff land in operations; customers in their portal.
+      // Staff land in operations; customers in their portal. Each
+      // portal only honours its own destinations and falls back to its
+      // home, so a customer link pasted into the staff portal (or vice
+      // versa) cannot bounce across portals.
       const role = body.user?.role ?? "";
       const staff = role !== "CUSTOMER";
-      router.push(
-        staff
-          ? next.startsWith("/admin")
-            ? next
-            : "/admin/tours"
-          : next.startsWith("/safari") || next.startsWith("/dashboard") || next.startsWith("/my-safaris") || next.startsWith("/profile")
-            ? next
-            : "/dashboard",
-      );
+      const customerHome = ["/safari", "/dashboard", "/my-safaris", "/profile"].some((prefix) =>
+        next.startsWith(prefix),
+      )
+        ? next
+        : "/dashboard";
+      const staffHome = next.startsWith("/admin") ? next : "/admin/tours";
+      router.push(staff ? staffHome : customerHome);
       router.refresh();
     } catch {
       setError("Network problem — check your connection and try again.");
@@ -61,7 +62,11 @@ export function LoginForm({ next }: { next: string }) {
   }
 
   return (
-    <form ref={markReady} onSubmit={onSubmit} aria-label="Staff sign in">
+    <form
+      ref={markReady}
+      onSubmit={onSubmit}
+      aria-label={portal === "staff" ? "Staff sign in" : "Customer sign in"}
+    >
       {error ? (
         <div className="mb-4">
           <ErrorState title="Could not sign in" description={error} />

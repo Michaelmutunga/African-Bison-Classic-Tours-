@@ -36,7 +36,7 @@ export function SpinningText({
     <Link
       href={href}
       aria-label={label}
-      className={`group relative block h-28 w-28 ${tone} ${className ?? ""}`}
+      className={`group relative block ${className ?? "h-28 w-28"} ${tone}`}
     >
       <svg viewBox="0 0 100 100" className="spin-slow absolute inset-0 h-full w-full" aria-hidden="true">
         <defs>

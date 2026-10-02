@@ -159,6 +159,15 @@ describe("income splits", () => {
   });
 
   it("separates pipeline from realised income by month", async () => {
+    const window = { from: "2033-05-01T00:00:00Z", to: "2033-06-01T00:00:00Z" };
+    // Fixed May-2033 window against the shared bison_test database: assert the
+    // delta this test creates so reruns are hermetic (prior runs leave rows).
+    const usd = (splits: { currency: string; incomeCents: number }[] | undefined) =>
+      splits?.find((s) => s.currency === "USD")?.incomeCents ?? 0;
+    const beforeRows = await incomePerMonth(finance, window);
+    const beforeMay = beforeRows.find((r) => r.month === "2033-05");
+    const pipeBefore = usd(beforeMay?.pipeline);
+    const realBefore = usd(beforeMay?.realised);
     const open = await reportBooking("USD", new Date("2033-05-15T12:00:00Z"));
     const shut = await reportBooking("USD", new Date("2033-05-16T12:00:00Z"));
     for (const booking of [open, shut]) {
@@ -171,11 +180,11 @@ describe("income splits", () => {
       });
     }
     await prisma.booking.update({ where: { id: shut.id }, data: { status: "COMPLETED" } });
-    const rows = await incomePerMonth(finance, { from: "2033-05-01T00:00:00Z", to: "2033-06-01T00:00:00Z" });
+    const rows = await incomePerMonth(finance, window);
     const may = rows.find((r) => r.month === "2033-05");
     expect(may).toBeTruthy();
-    expect(may?.pipeline[0]?.incomeCents).toBe(1_000);
-    expect(may?.realised[0]?.incomeCents).toBe(1_000);
+    expect(usd(may?.pipeline)).toBe(pipeBefore + 1_000);
+    expect(usd(may?.realised)).toBe(realBefore + 1_000);
   });
 });
 

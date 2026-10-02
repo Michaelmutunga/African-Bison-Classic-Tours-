@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
 import {
   formatBookingReference,
@@ -67,6 +67,14 @@ describe("Nairobi creation-date key", () => {
 });
 
 describe("atomic issuance", () => {
+  // Fixed date keys against the shared bison_test database: clear them before
+  // each test so reruns are hermetic (counters otherwise accumulate across
+  // runs and absolute 001-based assertions fail on the second run).
+  const days = ["2031-05-17", "2031-05-18", "2031-05-19", "2031-05-20", "2031-05-21"];
+  beforeEach(async () => {
+    await prisma.bookingDailyCounter.deleteMany({ where: { date: { in: days } } });
+  });
+
   async function issueAt(iso: string): Promise<string> {
     return prisma.$transaction((tx) => issueBookingReference(tx, new Date(iso)));
   }

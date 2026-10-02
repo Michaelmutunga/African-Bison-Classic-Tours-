@@ -50,3 +50,41 @@ Seeded rates and fees are **illustrative placeholders** (`placeholder: true`)
 for development. Quotes using them carry `hasPlaceholderRates: true` and
 must be labelled indicative. Replace them via `/api/admin/rate-cards`,
 `/api/admin/price-components`, seasons and currency rates before selling.
+
+---
+
+# Marketplace pricing engine (Phase 3, `server/marketplace-pricing.ts`)
+
+The middleman model: ABCT pays suppliers cost, charges clients cost +
+markup, keeps the difference. **All pricing math lives in one pure module —
+never in UI components.**
+
+## Line order of operations
+
+1. Scale cost: per-person units (`PER_PERSON_PER_NIGHT`, `PER_ACTIVITY`)
+   multiply unit cost × quantity × pax; vehicle/group/transfer units ignore
+   pax (`scaleLineCost`).
+2. Convert to the booking currency at the recorded FX rate (`CurrencyRate`
+   snapshot stored per line).
+3. Apply markup by priority: **line override → supplier → service type →
+   global default** (`MarkupRule` table; global seed is 25%).
+4. Round the client price to `pricing.roundingIncrementCents` (half up).
+
+## Booking order
+
+Sum lines → booking discount (clamped to subtotal) → taxes (percent on the
+discounted subtotal, fixed added flat, listed separately) → total → 30%
+deposit. Taxes are **never** hidden inside markup.
+
+## Markup % vs margin %
+
+Both are computed per line and booking-wide: markup % = markup / cost,
+margin % = income / client price. A 25% markup is a 20% margin.
+
+## Money trail
+
+`ServiceLine` rows store supplier cost, applied rule (+ source and rule id),
+client price, income, currency and FX snapshot (derived ref
+`{bookingRef}-Sn`). Booking rows carry **no** cost fields, so client
+payloads can never leak them — totals come from `bookingPricingSummary`.
+Rate changes never move existing lines (they pin the costed values).

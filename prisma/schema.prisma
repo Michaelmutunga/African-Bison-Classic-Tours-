@@ -369,6 +369,7 @@ model Booking {
   updatedAt      DateTime      @updatedAt
   travellers     BookingTraveller[]
   holds          Hold[]
+  serviceLines   ServiceLine[]
   history        BookingStatusHistory[]
   payments       Payment[]
   messages       CustomerMessage[]
@@ -833,6 +834,7 @@ model Supplier {
   types           SupplierType[] @relation("SupplierTypes")
   rates           SupplierRate[]
   locks           SupplierLock[]
+  serviceLines    ServiceLine[]
   documents       SupplierDocument[]
   payouts         SupplierPayout[]
 
@@ -887,6 +889,7 @@ model SupplierRate {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   locks        SupplierLock[]
+  serviceLines ServiceLine[]
 
   @@unique([supplierId, serviceSlug, version])
   @@index([supplierId, serviceSlug])
@@ -969,6 +972,94 @@ model SupplierPayout {
 
   @@index([supplierId, status])
   @@index([bookingRef])
+}
+
+// ---------------------------------------------------------------------------
+// Marketplace pricing (Phase 3). One pure engine prices everything;
+// cost/income live on ServiceLine rows (never exposed to clients).
+// ---------------------------------------------------------------------------
+
+enum MarkupScope {
+  GLOBAL
+  SERVICE_TYPE
+  SUPPLIER
+}
+
+enum MarkupMode {
+  PERCENT
+  FIXED
+}
+
+// Priority is positional: line override > supplier > service type > global.
+// Global rows use scopeKey "" so the unique constraint holds in Postgres
+// (NULL keys would allow duplicates).
+model MarkupRule {
+  id          String      @id @default(cuid())
+  scope       MarkupScope
+  scopeKey    String      @default("")
+  mode        MarkupMode
+  percentBps  Int?
+  fixedCents  Int?
+  currency    String      @default("USD")
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([scope, scopeKey])
+  @@index([scope, active])
+}
+
+// Taxes and fees are separate line items, never hidden inside markup.
+model TaxFee {
+  id          String     @id @default(cuid())
+  name        String
+  mode        MarkupMode
+  percentBps  Int?
+  fixedCents  Int?
+  currency    String     @default("USD")
+  active      Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([active, sortOrder])
+}
+
+model ServiceLine {
+  id                String     @id @default(cuid())
+  bookingId         String
+  booking           Booking    @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  // 1-based position; derived traceability ref is `${bookingRef}-S${seq}`.
+  seq               Int
+  serviceName       String
+  serviceType       String
+  supplierId        String?
+  supplier          Supplier?  @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  // Pinned supplier rate version at costing time.
+  rateId            String?
+  rate              SupplierRate? @relation(fields: [rateId], references: [id], onDelete: Restrict)
+  quantity          Int        @default(1)
+  pax               Int?
+  unit              RateUnit
+  currency          String     @default("USD")
+  // Total supplier cost for the line, in minor units of `currency`.
+  costCents         Int
+  // FX snapshot: units of `currency` per 1 base unit at costing time.
+  fxRate            Decimal?   @db.Decimal(18, 6)
+  markupMode        MarkupMode
+  markupBps         Int?
+  markupFixedCents  Int?
+  markupSource      String     @default("GLOBAL")
+  markupRuleId      String?
+  // Rounded client price (pre-tax) and ABCT gross income, minor units.
+  clientPriceCents  Int
+  incomeCents       Int
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@unique([bookingId, seq])
+  @@index([bookingId])
+  @@index([supplierId])
 }
 
 // ---------------------------------------------------------------------------

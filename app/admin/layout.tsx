@@ -28,6 +28,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ...(canCatalogue ? [{ href: "/admin/media", label: "Media" }] : []),
     ...(canCatalogue ? [{ href: "/admin/settings", label: "Settings" }] : []),
     { href: "/admin/quotes", label: "Quotes" },
+    { href: "/admin/pricing", label: "Pricing" },
     { href: "/admin/invoices", label: "Invoices" },
     { href: "/admin/payments", label: "Payments" },
     { href: "/admin/travellers", label: "Travellers" },

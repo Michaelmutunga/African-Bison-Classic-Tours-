@@ -267,6 +267,13 @@ async function seedCatalogue() {
     create: { currency: "USD", rateToBase: 1 },
   });
 
+  // Illustrative KES rate (admin-managed in production). 1 USD = 129 KES.
+  await prisma.currencyRate.upsert({
+    where: { currency: "KES" },
+    update: {},
+    create: { currency: "KES", rateToBase: 129 },
+  });
+
   await prisma.promoCode.upsert({
     where: { code: "EARLYBIRD" },
     update: { percentBps: 1000, active: true },
@@ -490,12 +497,32 @@ async function seedDemoSuppliers() {
   console.log(`Demo suppliers seeded: ${demos.length} suppliers, ${rateCount} rates.`);
 }
 
+/**
+ * Marketplace pricing defaults (Phase 3). The 25% global markup and $1
+ * rounding increment are starting points — admin-changeable at any time.
+ * No active taxes are seeded; finance adds real ones when advised.
+ */
+async function seedMarketplacePricing() {
+  await prisma.markupRule.upsert({
+    where: { scope_scopeKey: { scope: "GLOBAL", scopeKey: "" } },
+    update: { mode: "PERCENT", percentBps: 2500, fixedCents: null, active: true },
+    create: { scope: "GLOBAL", scopeKey: "", mode: "PERCENT", percentBps: 2500, currency: "USD", active: true },
+  });
+  await prisma.siteSetting.upsert({
+    where: { key: "pricing.roundingIncrementCents" },
+    update: {},
+    create: { key: "pricing.roundingIncrementCents", value: "100" },
+  });
+  console.log("Marketplace pricing seeded: 25% global markup, $1 rounding.");
+}
+
 async function main() {
   await seedSettings();
   await seedCatalogue();
   await seedEditorial();
   await seedSupplierTypes();
   await seedDemoSuppliers();
+  await seedMarketplacePricing();
   console.log("Seed complete.");
 }
 

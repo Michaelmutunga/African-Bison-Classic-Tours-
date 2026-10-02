@@ -58,7 +58,7 @@ test("booking confirmation surfaces in the customer portal feed", async ({ page,
   };
   const booking = listed.bookings.find((b) => b.reference === reference);
   if (!booking) throw new Error("booking missing");
-  for (const status of ["HOLD", "AWAITING_DEPOSIT", "CONFIRMED"]) {
+  for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "CONFIRMED"]) {
     const moved = await ctx.patch(`/api/admin/bookings/${booking.id}`, { data: { status } });
     expect(moved.status(), status).toBe(200);
   }

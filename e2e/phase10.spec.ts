@@ -141,9 +141,9 @@ test("booking workspace advances status and records notes", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Workspace Guest" })).toBeVisible({ timeout: 60_000 });
   // Re-click tolerant: pre-hydration clicks are no-ops, post-success the button is gone.
   await expect(async () => {
-    const hold = page.getByRole("button", { name: "→ HOLD" });
-    if (await hold.count()) await hold.click();
-    await expect(page.getByText("HOLD", { exact: true }).first()).toBeVisible({ timeout: 5_000 });
+    const review = page.getByRole("button", { name: "→ IN REVIEW" });
+    if (await review.count()) await review.click();
+    await expect(page.getByText("IN REVIEW", { exact: true }).first()).toBeVisible({ timeout: 5_000 });
   }).toPass({ timeout: 120_000 });
 
   await page.getByLabel(/Internal note/).fill("E2E operations note.");

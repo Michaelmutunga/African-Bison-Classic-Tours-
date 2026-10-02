@@ -22,9 +22,9 @@ async function confirmedBooking(email: string) {
     totalCents: 200_000,
     depositCents: 60_000,
   });
-  await setBookingStatus(admin, booking.id, "HOLD");
-  await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT");
-  await setBookingStatus(admin, booking.id, "CONFIRMED");
+  for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "CONFIRMED"] as const) {
+    await setBookingStatus(admin, booking.id, status);
+  }
   return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
 }
 

@@ -16,7 +16,11 @@ Roles: `SUPER_ADMIN`, `ADMIN`, `CONTENT_MANAGER` (write + publish),
 
 - `/admin` — dashboard with real counts; pipeline links filter `/admin/bookings`.
 - `/admin/bookings` — pipeline board; `/admin/bookings/[id]` — full workspace.
-- `/admin/calendar?month=N` — bookings, transfers, holds with conflict flags.
+- `/admin/calendar?month=N` — bookings, transfers, holds with conflict flags,
+  plus marketplace views: bookings by travel date (filterable by status,
+  supplier, service type, location) and supplier commitments (who is locked
+  on which days, linked back to the booking) with over-capacity warnings
+  from live lock math.
 - `/admin/fleet` — vehicles and guides (delete blocked while assigned).
 - `/admin/transfers`, `/admin/travellers`, `/admin/quotes`, `/admin/invoices`,
   `/admin/payments`, `/admin/inquiries`, `/admin/notifications`,
@@ -28,6 +32,35 @@ Roles: `SUPER_ADMIN`, `ADMIN`, `CONTENT_MANAGER` (write + publish),
 - Assignments reject overlaps with 409 naming the clashing booking; the
   calendar independently flags any that slip through.
 - No demo fleet is seeded — create the real vehicles and guides here.
+
+## Booking workspace (marketplace Phase 5)
+
+- `/admin` — “Needs action” counters (new requests, quotes awaiting answer,
+  supplier replies pending, overdue deposits, trips starting within 14 days).
+- `/admin/bookings/[id]` — single-screen workspace: header (reference,
+  status, age, owner, priority, next action), client + past bookings, trip
+  request, costed service lines with margin, supplier suggestions for
+  unassigned lines, supplier locks, quote + live pricing totals, payment
+  schedule vs received, transfers, travellers, documents, client thread,
+  internal notes, merged timeline.
+- Assign an owner + priority from the header; unassigned and urgent surface
+  first in the pipeline (priority-ordered).
+- Service lines re-price on every edit against live markup rules; money
+  fields are never hand-edited. Removing a line is audit-logged.
+- Supplier assignment picks a suggested rate (cheapest first, capacity
+  checked); availability requests and lock lifecycles arrive in Phase 6.
+
+## Reports (marketplace Phase 8, finance roles only)
+
+- `/admin/reports` — live figures, never summed across currencies:
+  income per booking / month (pipeline vs realised on COMPLETED) /
+  supplier (plus unassigned bucket) / service type, each with gross income
+  and margin %; outstanding client balances (priced + active taxes − paid)
+  and DUE supplier payouts; conversion NEW → CONFIRMED and mean hours to
+  first quote. Same data via `/api/admin/reports/income|outstanding|funnel`.
+- Cost, markup and margin data is restricted to SUPER_ADMIN, ADMIN and
+  FINANCE_USER at the service layer — the client never receives it because
+  booking rows carry no cost fields at all.
 
 ## Catalogue workflow
 

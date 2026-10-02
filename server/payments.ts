@@ -21,8 +21,8 @@ export class PaymentError extends Error {
   }
 }
 
-/** Booking states that may receive money. */
-const PAYABLE: BookingStatus[] = ["HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP"];
+/** Booking states that may receive money (post-quote workflow only). */
+const PAYABLE: BookingStatus[] = ["AWAITING_PAYMENT", "PARTIALLY_PAID", "CONFIRMED", "IN_PROGRESS"];
 
 function gateStaff(actor: Actor | null): void {
   if (!actor) throw new UnauthorizedError();
@@ -58,12 +58,78 @@ async function autoConfirm(
 ): Promise<void> {
   const booking = await tx.booking.findUnique({ where: { id: bookingId } });
   if (!booking) return;
+  if (booking.totalCents > 0 && booking.paidCents >= booking.totalCents) {
+    // Paid in full from any payable state lands CONFIRMED (with effects).
+    if (booking.status === "AWAITING_PAYMENT" || booking.status === "PARTIALLY_PAID") {
+      await applyTransition(tx, bookingId, "CONFIRMED", actorId, "Paid in full");
+      await confirmSupplierEffects(tx, booking, actorId);
+    }
+    return;
+  }
   if (
-    (booking.status === "HOLD" || booking.status === "AWAITING_DEPOSIT") &&
+    booking.status === "AWAITING_PAYMENT" &&
     booking.depositCents > 0 &&
     booking.paidCents >= booking.depositCents
   ) {
-    await applyTransition(tx, bookingId, "CONFIRMED", actorId, "Deposit paid in full");
+    await applyTransition(tx, bookingId, "PARTIALLY_PAID", actorId, "Deposit paid in full");
+  }
+}
+
+/**
+ * Payment-confirmed effects: supplier HELD locks become CONFIRMED,
+ * payouts schedule as DUE, suppliers hear the good news.
+ */
+async function confirmSupplierEffects(
+  tx: BookingTx,
+  booking: { id: string; reference: string },
+  actorId: string | null,
+): Promise<void> {
+  const locks = await tx.supplierLock.findMany({
+    where: { bookingRef: booking.reference, status: "HELD" },
+    include: { rate: true, supplier: { select: { id: true, name: true, email: true } } },
+  });
+  for (const lock of locks) {
+    await tx.supplierLock.update({ where: { id: lock.id }, data: { status: "CONFIRMED" } });
+    await tx.auditLog.create({
+      data: { actor: actorId ?? "system", action: "supplier-lock.confirmed", resource: "supplier-lock", resourceId: lock.id },
+    });
+    if (lock.rate) {
+      await tx.supplierPayout.create({
+        data: {
+          supplierId: lock.supplierId,
+          bookingRef: booking.reference,
+          lockId: lock.id,
+          amountCents: lock.rate.costCents * lock.quantity,
+          currency: lock.rate.currency,
+          status: "DUE",
+        },
+      });
+    }
+  }
+  // Voucher for the client portal documents.
+  await tx.document.create({
+    data: {
+      bookingId: booking.id,
+      kind: "voucher",
+      title: `Safari voucher ${booking.reference}`,
+      body: `Confirmed safari ${booking.reference}. Present this reference at every pickup.`,
+      createdById: actorId,
+    },
+  });
+  const emailed = new Set<string>();
+  for (const lock of locks) {
+    const email = lock.supplier.email;
+    if (!email || emailed.has(email)) continue;
+    emailed.add(email);
+    await notify({
+      event: "supplier.confirmed",
+      channels: ["EMAIL"],
+      to: { email },
+      bookingId: booking.id,
+      subject: `Booking confirmed: ${booking.reference}`,
+      body: `${lock.supplier.name}, booking ${booking.reference} is confirmed and paid. Service: ${lock.serviceName} × ${lock.quantity}. Thank you for holding these dates.`,
+      dedupeKey: `supplier:${lock.supplierId}:${booking.id}:confirmed`,
+    });
   }
 }
 

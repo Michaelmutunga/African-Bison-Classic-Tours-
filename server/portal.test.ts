@@ -99,11 +99,9 @@ describe("travellers", () => {
     expect(await prisma.bookingTraveller.findUnique({ where: { id: traveller.id } })).toBeNull();
 
     // Locked once underway.
-    await setBookingStatus(admin, booking.id, "HOLD");
-    await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT");
-    await setBookingStatus(admin, booking.id, "CONFIRMED");
-    await setBookingStatus(admin, booking.id, "PRE_TRIP");
-    await setBookingStatus(admin, booking.id, "ON_SAFARI");
+    for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "CONFIRMED", "IN_PROGRESS"] as const) {
+      await setBookingStatus(admin, booking.id, status);
+    }
     await expect(
       addTraveller(me, booking.reference, { fullName: "Late Guest", kind: "adult" }),
     ).rejects.toThrow(PortalError);
@@ -188,8 +186,8 @@ describe("checklist and progress", () => {
   });
 
   it("maps statuses to journey stages and trip days", () => {
-    expect(journeyProgress("ON_SAFARI")).toMatchObject({ stage: 8, of: 9 });
-    expect(journeyProgress("COMPLETED").stage).toBe(9);
+    expect(journeyProgress("IN_PROGRESS")).toMatchObject({ stage: 11, of: 12 });
+    expect(journeyProgress("COMPLETED").stage).toBe(12);
     expect(journeyProgress("WEIRD").stage).toBe(0);
     expect(tripDayNumber(new Date("2027-09-18T06:00:00Z"), new Date("2027-09-20T12:00:00Z"))).toBe(3);
     expect(tripDayNumber(null)).toBeNull();

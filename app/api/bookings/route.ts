@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { clientIp, throttled } from "@/lib/ratelimit";
-import { createBooking } from "@/server/bookings";
+import { submitMarketplaceBooking } from "@/server/submissions";
 import { errorResponse, readJson, requestActor } from "@/server/http";
 
-/** Guest checkout: creates a booking without an account (Phase 8 adds accounts). */
+/** Guest submission: creates a NEW marketplace booking with notifications. */
 export async function POST(request: Request) {
   try {
     if (throttled(`bookings:${clientIp(request)}`, 20, 10 * 60 * 1000)) {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
         { status: 429 },
       );
     }
-    const booking = await createBooking(await requestActor(), await readJson(request));
+    const booking = await submitMarketplaceBooking(await requestActor(), await readJson(request));
     return NextResponse.json(
       {
         ok: true,

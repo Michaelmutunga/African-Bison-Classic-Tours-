@@ -4,7 +4,6 @@ import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import {
   BookingError,
   TRANSITIONS,
-  bookingReference,
   cancelBooking,
   createBooking,
   createHold,
@@ -49,10 +48,15 @@ beforeAll(async () => {
 });
 
 describe("references and state machine", () => {
-  it("generates unique references", () => {
-    const refs = new Set([bookingReference(), bookingReference(), bookingReference()]);
-    expect(refs.size).toBe(3);
-    for (const ref of refs) expect(ref).toMatch(/^ABCT-\d{4}-[A-Z2-9]{6}$/);
+  it("issues dated per-day references", async () => {
+    const first = await guestBooking();
+    const second = await guestBooking();
+    for (const booking of [first, second]) {
+      expect(booking.reference).toMatch(/^ABCT-\d{4}-\d{2}-\d{2}-\d{3,}$/);
+    }
+    expect(first.reference).not.toBe(second.reference);
+    await cancelBooking(admin, first.id, "test cleanup");
+    await cancelBooking(admin, second.id, "test cleanup");
   });
 
   it("rejects illegal transitions", async () => {
@@ -62,13 +66,13 @@ describe("references and state machine", () => {
     // History recorded creation.
     const history = await prisma.bookingStatusHistory.findMany({ where: { bookingId: booking.id } });
     expect(history).toHaveLength(1);
-    expect(history[0]).toMatchObject({ from: null, to: "INQUIRY" });
+    expect(history[0]).toMatchObject({ from: null, to: "NEW" });
     await cancelBooking(admin, booking.id, "test cleanup");
   });
 
-  it("walks the legal path with history at every step", async () => {
+  it("enters at NEW and walks the legal path with history at every step", async () => {
     const booking = await guestBooking();
-    const path = ["HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP", "ON_SAFARI", "COMPLETED"] as const;
+    const path = ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "PARTIALLY_PAID", "CONFIRMED", "IN_PROGRESS", "COMPLETED"] as const;
     for (const status of path) {
       await setBookingStatus(admin, booking.id, status, `moving to ${status}`);
     }
@@ -76,16 +80,16 @@ describe("references and state machine", () => {
       where: { bookingId: booking.id },
       orderBy: { createdAt: "asc" },
     });
-    expect(history.map((h) => h.to)).toEqual(["INQUIRY", ...path]);
+    expect(history.map((h) => h.to)).toEqual(["NEW", ...path]);
     expect(history.every((h) => h.reason !== null)).toBe(true);
   });
 
   it("expired bookings can re-enter", async () => {
     const booking = await guestBooking();
     await setBookingStatus(admin, booking.id, "EXPIRED");
-    await setBookingStatus(admin, booking.id, "INQUIRY", "re-engaged");
+    await setBookingStatus(admin, booking.id, "NEW", "re-engaged");
     const fresh = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
-    expect(fresh.status).toBe("INQUIRY");
+    expect(fresh.status).toBe("NEW");
     await cancelBooking(admin, booking.id, "cleanup");
   });
 
@@ -126,9 +130,10 @@ describe("holds", () => {
 
   it("consumes holds on confirmation", async () => {
     const booking = await guestBooking({ holds: [{ ...HOLD }] });
-    expect(booking.status).toBe("HOLD");
-    await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT");
-    await setBookingStatus(admin, booking.id, "CONFIRMED");
+    expect(booking.status).toBe("SUPPLIERS_PENDING");
+    for (const status of ["QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "CONFIRMED"] as const) {
+      await setBookingStatus(admin, booking.id, status);
+    }
     const holds = await prisma.hold.findMany({ where: { bookingId: booking.id } });
     expect(holds.every((h) => h.status === "CONSUMED")).toBe(true);
     // Consumed holds still block inventory.
@@ -204,8 +209,9 @@ describe("modification", () => {
 
   it("refuses edits once confirmed", async () => {
     const booking = await guestBooking();
-    await setBookingStatus(admin, booking.id, "HOLD");
-    await setBookingStatus(admin, booking.id, "CONFIRMED");
+    for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "CONFIRMED"] as const) {
+      await setBookingStatus(admin, booking.id, status);
+    }
     await expect(modifyBooking(admin, booking.id, { adults: 4 })).rejects.toThrow(BookingError);
     await cancelBooking(admin, booking.id, "cleanup");
   });
@@ -264,7 +270,7 @@ describe("quote conversion", () => {
       quoteId: quote.id,
     });
     expect(booking.totalCents).toBe(quote.totalCents);
-    expect(booking.status).toBe("INQUIRY");
+    expect(booking.status).toBe("NEW");
     expect((await prisma.quote.findUniqueOrThrow({ where: { id: quote.id } })).status).toBe("CONVERTED");
     await expect(
       createBooking(null, {

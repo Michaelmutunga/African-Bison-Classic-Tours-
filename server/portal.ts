@@ -106,7 +106,7 @@ export const travellerSchema = z.object({
   medicalNotes: z.string().trim().max(500).optional().or(z.literal("")),
 });
 
-const EDITABLE = ["INQUIRY", "HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP"];
+const EDITABLE = ["NEW", "IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "CLIENT_REVISION", "AWAITING_PAYMENT", "PARTIALLY_PAID", "CONFIRMED"];
 
 function toTravellerData(data: z.infer<typeof travellerSchema>) {
   const empty = (value: string | undefined) => (value ? value : null);

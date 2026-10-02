@@ -2,11 +2,11 @@ import { createHash } from "node:crypto";
 import { Prisma, type BookingStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { formatMoney } from "@/lib/money";
 import { notify } from "@/server/notifications/dispatch";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import { ConflictError, NotFoundError, type Actor } from "@/server/catalogue";
 import { hasPermission } from "@/lib/permissions";
+import { issueBookingReference } from "@/server/booking-references";
 
 export class BookingError extends Error {
   readonly status = 422;
@@ -21,37 +21,48 @@ function gateStaff(actor: Actor | null): void {
 }
 
 // ---------------------------------------------------------------------------
-// State machine (§12). No arbitrary transitions — ever.
+// Marketplace state machine (Phase 6). No arbitrary transitions — ever.
+// Legacy rows were remapped with history (INQUIRY→NEW, HOLD→SUPPLIERS_PENDING,
+// AWAITING_DEPOSIT→AWAITING_PAYMENT, PRE_TRIP→CONFIRMED, ON_SAFARI→IN_PROGRESS).
 // ---------------------------------------------------------------------------
 
 export const TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
-  INQUIRY: ["QUOTE_DRAFT", "HOLD", "CANCELLED", "EXPIRED"],
-  QUOTE_DRAFT: ["QUOTE_SENT", "HOLD", "CANCELLED", "EXPIRED"],
-  QUOTE_SENT: ["QUOTE_DRAFT", "HOLD", "AWAITING_DEPOSIT", "CANCELLED", "EXPIRED"],
-  HOLD: ["AWAITING_DEPOSIT", "CONFIRMED", "CANCELLED", "EXPIRED"],
-  AWAITING_DEPOSIT: ["CONFIRMED", "CANCELLED", "EXPIRED"],
-  CONFIRMED: ["PRE_TRIP", "CANCELLED"],
-  PRE_TRIP: ["ON_SAFARI", "CANCELLED"],
-  ON_SAFARI: ["COMPLETED"],
+  NEW: ["IN_REVIEW", "SUPPLIERS_PENDING", "CANCELLED", "EXPIRED"],
+  IN_REVIEW: ["SUPPLIERS_PENDING", "QUOTE_DRAFT", "CANCELLED", "EXPIRED"],
+  SUPPLIERS_PENDING: ["QUOTE_DRAFT", "CANCELLED", "EXPIRED"],
+  QUOTE_DRAFT: ["QUOTE_APPROVED", "CANCELLED", "EXPIRED"],
+  QUOTE_APPROVED: ["QUOTE_SENT", "QUOTE_DRAFT", "CANCELLED", "EXPIRED"],
+  QUOTE_SENT: ["AWAITING_PAYMENT", "CLIENT_REVISION", "CANCELLED", "EXPIRED"],
+  CLIENT_REVISION: ["QUOTE_DRAFT", "CANCELLED", "EXPIRED"],
+  AWAITING_PAYMENT: ["PARTIALLY_PAID", "CONFIRMED", "CANCELLED", "EXPIRED"],
+  PARTIALLY_PAID: ["CONFIRMED", "CANCELLED", "EXPIRED"],
+  CONFIRMED: ["IN_PROGRESS", "CANCELLED"],
+  IN_PROGRESS: ["COMPLETED"],
   COMPLETED: [],
   CANCELLED: [],
-  EXPIRED: ["INQUIRY", "HOLD"],
+  EXPIRED: ["NEW"],
   REFUND_PENDING: ["REFUNDED"],
   REFUNDED: [],
 };
 
-const MODIFIABLE = ["INQUIRY", "HOLD", "AWAITING_DEPOSIT"] as const;
+const MODIFIABLE = ["NEW", "IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "CLIENT_REVISION"] as const;
 const CANCELLABLE: BookingStatus[] = [
-  "INQUIRY",
+  "NEW",
+  "IN_REVIEW",
+  "SUPPLIERS_PENDING",
   "QUOTE_DRAFT",
+  "QUOTE_APPROVED",
   "QUOTE_SENT",
-  "HOLD",
-  "AWAITING_DEPOSIT",
+  "CLIENT_REVISION",
+  "AWAITING_PAYMENT",
+  "PARTIALLY_PAID",
   "CONFIRMED",
-  "PRE_TRIP",
 ];
 
 export function bookingReference(): string {
+  // Deprecated: marketplace refs are dated per-day counters issued by
+  // issueBookingReference() in server/booking-references.ts. Kept for
+  // backwards-compatible imports; returns a legacy-format value.
   const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
   let suffix = "";
   for (let i = 0; i < 6; i++) suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
@@ -83,13 +94,31 @@ export const bookingInput = z.object({
   customerName: z.string().trim().min(2).max(160),
   customerEmail: z.string().trim().email().max(254),
   customerPhone: z.string().trim().max(40).optional(),
+  // Honeypot: genuine submissions leave this empty (checked on public routes).
+  company: z.string().max(0).optional().or(z.literal("")),
+  source: z.enum(["TOUR", "CUSTOM"]).default("TOUR"),
   tourId: z.string().cuid().optional(),
   quoteId: z.string().cuid().optional(),
   travelStart: z.string().datetime().optional(),
   travelEnd: z.string().datetime().optional(),
+  flexibleDates: z.boolean().default(false),
   adults: z.number().int().min(1).max(18).default(1),
   children: z.number().int().min(0).max(18).default(0),
   infants: z.number().int().min(0).max(6).default(0),
+  childrenAges: z.array(z.number().int().min(0).max(17)).max(18).default([]),
+  nationality: z.string().trim().max(80).optional(),
+  arrivalFlight: z.string().trim().max(120).optional(),
+  departureFlight: z.string().trim().max(120).optional(),
+  airport: z.string().trim().max(120).optional(),
+  accommodationTier: z.string().trim().max(80).optional(),
+  budgetRange: z.string().trim().max(80).optional(),
+  interests: z.array(z.string().trim().min(2).max(80)).max(16).default([]),
+  specialRequests: z.string().trim().max(4000).optional(),
+  occasion: z.string().trim().max(120).optional(),
+  pickupLocation: z.string().trim().max(200).optional(),
+  contactChannel: z.enum(["email", "phone", "whatsapp"]).optional(),
+  // Custom designs: structured request until service-line parsing (Phase 6).
+  customItinerary: z.record(z.string(), z.unknown()).optional(),
   currency: z.string().trim().length(3).default("USD"),
   // Staff-entered commercial terms when no quote is attached.
   subtotalCents: z.number().int().min(0).default(0),
@@ -224,28 +253,7 @@ async function notifyBookingTransition(
       template: { name: "bookingCancelled", input: { name: booking.customerName, reference: booking.reference } },
       dedupeKey: `booking:${booking.id}:CANCELLED`,
     });
-  } else if (to === "PRE_TRIP") {
-    await notify({
-      event: "booking.pre_trip",
-      channels: ["EMAIL", "IN_APP"],
-      to: toCustomer,
-      bookingId: booking.id,
-      template: {
-        name: "preTripChecklist",
-        input: {
-          name: booking.customerName,
-          reference: booking.reference,
-          details: [
-            "Passport details for every traveller.",
-            "Final balance settled.",
-            dates ? `Travel dates confirmed: ${dates}.` : "Travel dates confirmed with your planner.",
-            `Total: ${formatMoney(booking.totalCents, booking.currency)}.`,
-          ],
-        },
-      },
-      dedupeKey: `booking:${booking.id}:PRE_TRIP`,
-    });
-  } else if (to === "ON_SAFARI") {
+  } else if (to === "IN_PROGRESS") {
     await notify({
       event: "trip.started",
       channels: ["EMAIL", "IN_APP"],
@@ -262,7 +270,7 @@ async function notifyBookingTransition(
           ],
         },
       },
-      dedupeKey: `booking:${booking.id}:ON_SAFARI`,
+      dedupeKey: `booking:${booking.id}:IN_PROGRESS`,
     });
   } else if (to === "COMPLETED") {
     await notify({
@@ -413,6 +421,14 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
   if (data.travelStart && data.travelEnd && !(new Date(data.travelStart) < new Date(data.travelEnd))) {
     throw new BookingError("Travel must end after it starts");
   }
+  if (data.source === "CUSTOM") {
+    const itinerary = data.customItinerary ?? {};
+    const destinations = Array.isArray(itinerary.destinations) ? itinerary.destinations : [];
+    const notes = typeof itinerary.notes === "string" ? itinerary.notes.trim() : "";
+    if (destinations.length === 0 && notes.length < 10) {
+      throw new BookingError("Custom designs need destinations or notes (10+ characters)");
+    }
+  }
 
   return prisma.$transaction(async (tx) => {
     if (data.idempotencyKey) {
@@ -461,22 +477,42 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
       try {
         const booking = await tx.booking.create({
           data: {
-            reference: bookingReference(),
+            // Dated per-day counter (Africa/Nairobi creation date), issued
+            // atomically in this transaction. Travel dates never feed it.
+            reference: await issueBookingReference(tx, now),
             userId: actor && actor.role === "CUSTOMER" ? actor.id : null,
             customerName: data.customerName,
             customerEmail: data.customerEmail.toLowerCase(),
             customerPhone: data.customerPhone ?? null,
             tourId: data.tourId ?? null,
             quoteId,
-            status: "INQUIRY",
+            source: data.source,
+            status: "NEW",
             currency: data.currency,
             ...totals,
             paidCents: 0,
             travelStart: data.travelStart ? new Date(data.travelStart) : null,
             travelEnd: data.travelEnd ? new Date(data.travelEnd) : null,
+            flexibleDates: data.flexibleDates,
             adults: data.adults,
             children: data.children,
             infants: data.infants,
+            childrenAges: data.childrenAges,
+            nationality: data.nationality ?? null,
+            arrivalFlight: data.arrivalFlight ?? null,
+            departureFlight: data.departureFlight ?? null,
+            airport: data.airport ?? null,
+            accommodationTier: data.accommodationTier ?? null,
+            budgetRange: data.budgetRange ?? null,
+            interests: data.interests,
+            specialRequests: data.specialRequests ?? null,
+            occasion: data.occasion ?? null,
+            pickupLocation: data.pickupLocation ?? null,
+            contactChannel: data.contactChannel ?? null,
+            customItinerary:
+              data.customItinerary === undefined
+                ? undefined
+                : (JSON.parse(JSON.stringify(data.customItinerary)) as Prisma.InputJsonValue),
             snapshot,
             idempotencyKey: data.idempotencyKey ?? null,
             createdById: actor?.id ?? null,
@@ -490,7 +526,7 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
           },
           include: { travellers: true, holds: true },
         });
-        await recordHistory(tx, booking.id, null, "INQUIRY", actor?.id ?? null, "Booking created");
+        await recordHistory(tx, booking.id, null, "NEW", actor?.id ?? null, "Booking submitted");
 
         // Every hold passes through the locked availability check — no
         // unguarded inventory writes anywhere in the codebase.
@@ -509,7 +545,7 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
           );
         }
         if (data.holds.length > 0) {
-          await applyTransition(tx, booking.id, "HOLD", actor?.id ?? null, "Resources held");
+          await applyTransition(tx, booking.id, "SUPPLIERS_PENDING", actor?.id ?? null, "Resources held");
         }
         return tx.booking.findUniqueOrThrow({
           where: { id: booking.id },
@@ -543,6 +579,8 @@ const modifySchema = z.object({
   infants: z.number().int().min(0).max(6).optional(),
   travellers: z.array(travellerInput).max(24).optional(),
   customerPhone: z.string().trim().max(40).nullable().optional(),
+  assignedAdminId: z.string().cuid().nullable().optional(),
+  priority: z.enum(["NORMAL", "HIGH", "URGENT"]).optional(),
   reason: z.string().trim().max(500).optional(),
 });
 
@@ -579,8 +617,18 @@ export async function modifyBooking(actor: Actor | null, id: string, input: unkn
         ...(data.children !== undefined ? { children: data.children } : {}),
         ...(data.infants !== undefined ? { infants: data.infants } : {}),
         ...(data.customerPhone !== undefined ? { customerPhone: data.customerPhone } : {}),
+        ...(data.priority !== undefined ? { priority: data.priority } : {}),
       },
     });
+    if (data.assignedAdminId !== undefined) {
+      if (data.assignedAdminId) {
+        const admin = await tx.user.findUnique({ where: { id: data.assignedAdminId } });
+        if (!admin || admin.role === "CUSTOMER" || !admin.isActive) {
+          throw new BookingError("Assignee must be an active staff member");
+        }
+      }
+      await tx.booking.update({ where: { id }, data: { assignedAdminId: data.assignedAdminId } });
+    }
     if (data.travellers) {
       await tx.bookingTraveller.deleteMany({ where: { bookingId: id } });
       await tx.bookingTraveller.createMany({
@@ -629,6 +677,11 @@ export async function cancelBooking(
     await tx.booking.update({ where: { id }, data: { status: target } });
     await recordHistory(tx, id, fresh.status, target, actor?.id ?? null, reason ?? "Booking cancelled");
     await tx.hold.updateMany({ where: { bookingId: id, status: "ACTIVE" }, data: { status: "RELEASED" } });
+    // Supplier commitments release too; amendment re-requests them later.
+    await tx.supplierLock.updateMany({
+      where: { bookingRef: fresh.reference, status: { in: ["REQUESTED", "HELD", "CONFIRMED"] } },
+      data: { status: "RELEASED" },
+    });
     return tx.booking.findUniqueOrThrow({
       where: { id },
       include: { travellers: true, holds: true },
@@ -673,9 +726,9 @@ export async function sweepExpirations(now: Date = new Date()): Promise<{ holds:
       where: { status: "ACTIVE", expiresAt: { lt: now } },
       data: { status: "EXPIRED" },
     });
-    // Bookings stuck in HOLD with no live holds expire too.
+    // Bookings stuck in SUPPLIERS_PENDING with no live holds expire too.
     const candidates = await tx.booking.findMany({
-      where: { status: "HOLD" },
+      where: { status: "SUPPLIERS_PENDING" },
       select: { id: true, status: true },
     });
     let bookings = 0;
@@ -683,7 +736,7 @@ export async function sweepExpirations(now: Date = new Date()): Promise<{ holds:
       const live = await tx.hold.count({ where: { bookingId: candidate.id, status: "ACTIVE" } });
       if (live === 0) {
         await tx.booking.update({ where: { id: candidate.id }, data: { status: "EXPIRED" } });
-        await recordHistory(tx, candidate.id, "HOLD", "EXPIRED", null, "All holds expired");
+        await recordHistory(tx, candidate.id, "SUPPLIERS_PENDING", "EXPIRED", null, "All holds expired");
         bookings += 1;
       }
     }
@@ -735,12 +788,28 @@ export async function getBooking(actor: Actor | null, id: string) {
   return booking;
 }
 
-export async function listBookings(actor: Actor | null, status?: BookingStatus) {
+export async function listBookings(actor: Actor | null, status?: BookingStatus, search?: string) {
   gateStaff(actor);
+  const term = search?.trim().toUpperCase();
   return prisma.booking.findMany({
-    where: status ? { status } : undefined,
-    orderBy: { createdAt: "desc" },
+    where: {
+      ...(status ? { status } : {}),
+      // Reference search covers dated (ABCT-YYYY-MM-DD-NNN) and legacy refs.
+      ...(term
+        ? {
+            OR: [
+              { reference: { contains: term, mode: "insensitive" } },
+              { customerName: { contains: search?.trim() ?? "", mode: "insensitive" } },
+              { customerEmail: { contains: search?.trim() ?? "", mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
     take: 100,
-    include: { tour: { select: { slug: true, title: true } } },
+    include: {
+      tour: { select: { slug: true, title: true } },
+      assignedAdmin: { select: { id: true, name: true } },
+    },
   });
 }

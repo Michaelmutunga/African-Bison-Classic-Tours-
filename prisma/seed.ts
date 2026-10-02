@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_SUPPLIER_TYPES } from "../server/suppliers";
 import aboutJson from "../data/content/about.json" with { type: "json" };
 import destinationsJson from "../data/content/destinations.json" with { type: "json" };
 import faqsJson from "../data/content/faqs.json" with { type: "json" };
@@ -55,6 +56,10 @@ async function seedSettings() {
     ["business.phonePrimary", "+254734466432"],
     ["business.phoneSecondary", "+254111234567"],
     ["business.email", "info@africanbisonclassictours.com"],
+    // Marketplace quote defaults (Phase 6): starting points, admin-editable.
+    ["quote.validityDays", "14"],
+    ["quote.paymentTerms", "30% deposit on acceptance; balance due 30 days before travel."],
+    ["quote.cancellationTerms", "Free cancellation within 48 hours of acceptance; terms per service apply after suppliers confirm."],
   ];
   for (const [key, value] of settings) {
     await prisma.siteSetting.upsert({
@@ -266,6 +271,13 @@ async function seedCatalogue() {
     create: { currency: "USD", rateToBase: 1 },
   });
 
+  // Illustrative KES rate (admin-managed in production). 1 USD = 129 KES.
+  await prisma.currencyRate.upsert({
+    where: { currency: "KES" },
+    update: {},
+    create: { currency: "KES", rateToBase: 129 },
+  });
+
   await prisma.promoCode.upsert({
     where: { code: "EARLYBIRD" },
     update: { percentBps: 1000, active: true },
@@ -331,10 +343,190 @@ async function seedEditorial() {
   console.log(`Editorial seeded: ${postCount} new posts, ${faqCount} new FAQs.`);
 }
 
+async function seedSupplierTypes() {
+  for (const type of DEFAULT_SUPPLIER_TYPES) {
+    await prisma.supplierType.upsert({
+      where: { slug: type.slug },
+      update: { name: type.name, active: true },
+      create: { slug: type.slug, name: type.name, active: true },
+    });
+  }
+  console.log(`Supplier types seeded: ${DEFAULT_SUPPLIER_TYPES.length}.`);
+}
+
+type DemoRate = {
+  serviceSlug: string;
+  serviceName: string;
+  serviceType: string;
+  unit: "PER_VEHICLE_PER_DAY" | "PER_PERSON_PER_NIGHT" | "PER_TRANSFER" | "PER_ACTIVITY" | "PER_GROUP";
+  currency: string;
+  costCents: number;
+  capacity: number | null;
+  notes: string;
+};
+
+type DemoSupplier = {
+  name: string;
+  typeSlugs: string[];
+  contactPerson: string;
+  phone: string;
+  email: string;
+  coverageAreas: string[];
+  status: "ACTIVE" | "PAUSED" | "BLACKLISTED";
+  rating: number;
+  payoutHint: string;
+  rates: DemoRate[];
+};
+
+/**
+ * Clearly-marked DEMO suppliers for development. Illustrative costs only —
+ * the business must replace them with contracted rates before go-live.
+ * (Sample bookings in workflow states land with the Phase 6 state machine.)
+ */
+async function seedDemoSuppliers() {
+  const demos: DemoSupplier[] = [
+    {
+      name: "[DEMO] JKIA Express Transfers",
+      typeSlugs: ["airport-transfer", "vehicle-hire"],
+      contactPerson: "Demo Dispatcher",
+      phone: "+254700000001",
+      email: "demo-transfers@example.com",
+      coverageAreas: ["Nairobi"],
+      status: "ACTIVE",
+      rating: 5,
+      payoutHint: "M-Pesa •••• 0001",
+      rates: [
+        { serviceSlug: "jkia-pickup", serviceName: "JKIA airport pickup", serviceType: "airport-transfer", unit: "PER_TRANSFER", currency: "USD", costCents: 4000, capacity: 4, notes: "Includes fuel; parking excluded" },
+        { serviceSlug: "cruiser-hire", serviceName: "4x4 Land Cruiser with driver", serviceType: "vehicle-hire", unit: "PER_VEHICLE_PER_DAY", currency: "USD", costCents: 28000, capacity: 3, notes: "Includes fuel for 150km/day" },
+      ],
+    },
+    {
+      name: "[DEMO] Mara River Lodge",
+      typeSlugs: ["hotel-lodge-camp"],
+      contactPerson: "Demo Reservations",
+      phone: "+254700000002",
+      email: "demo-lodge@example.com",
+      coverageAreas: ["Maasai Mara"],
+      status: "ACTIVE",
+      rating: 4,
+      payoutHint: "Bank •••• 0002",
+      rates: [
+        { serviceSlug: "double-full-board", serviceName: "Double room, full board", serviceType: "hotel-lodge-camp", unit: "PER_PERSON_PER_NIGHT", currency: "USD", costCents: 25000, capacity: 20, notes: "Park fees excluded" },
+      ],
+    },
+    {
+      name: "[DEMO] Savannah Driver-Guides",
+      typeSlugs: ["driver-guide"],
+      contactPerson: "Demo Coordinator",
+      phone: "+254700000003",
+      email: "demo-guides@example.com",
+      coverageAreas: ["Nairobi", "Maasai Mara", "Amboseli"],
+      status: "ACTIVE",
+      rating: 5,
+      payoutHint: "M-Pesa •••• 0003",
+      rates: [
+        { serviceSlug: "english-guide-day", serviceName: "English-speaking driver-guide", serviceType: "driver-guide", unit: "PER_GROUP", currency: "USD", costCents: 12000, capacity: 3, notes: "Max 7 pax per guide" },
+      ],
+    },
+    {
+      name: "[DEMO] Mara Balloon Flights",
+      typeSlugs: ["park-activity-operator"],
+      contactPerson: "Demo Bookings",
+      phone: "+254700000004",
+      email: "demo-balloon@example.com",
+      coverageAreas: ["Maasai Mara"],
+      status: "ACTIVE",
+      rating: 5,
+      payoutHint: "Bank •••• 0004",
+      rates: [
+        { serviceSlug: "balloon-flight", serviceName: "Sunrise balloon flight", serviceType: "park-activity-operator", unit: "PER_ACTIVITY", currency: "USD", costCents: 55000, capacity: 16, notes: "Weight limit applies; bush breakfast included" },
+      ],
+    },
+    {
+      name: "[DEMO] Diani Coastal Camp (paused)",
+      typeSlugs: ["hotel-lodge-camp"],
+      contactPerson: "Demo Reservations",
+      phone: "+254700000005",
+      email: "demo-coast@example.com",
+      coverageAreas: ["Diani"],
+      status: "PAUSED",
+      rating: 3,
+      payoutHint: "Bank •••• 0005",
+      rates: [
+        { serviceSlug: "beach-room-half-board", serviceName: "Beach room, half board", serviceType: "hotel-lodge-camp", unit: "PER_PERSON_PER_NIGHT", currency: "USD", costCents: 18000, capacity: 12, notes: "Seasonal closure May-Jun" },
+      ],
+    },
+  ];
+
+  let rateCount = 0;
+  for (const demo of demos) {
+    const supplier = await prisma.supplier.upsert({
+      where: { id: `demo-supplier-${demo.name}` },
+      update: {},
+      create: { id: `demo-supplier-${demo.name}`, name: demo.name },
+    });
+    // Reset demo rows to the snapshot above on every seed run.
+    await prisma.supplier.update({
+      where: { id: supplier.id },
+      data: {
+        contactPerson: demo.contactPerson,
+        phone: demo.phone,
+        email: demo.email,
+        coverageAreas: demo.coverageAreas,
+        status: demo.status,
+        rating: demo.rating,
+        payoutHint: demo.payoutHint,
+        types: { set: demo.typeSlugs.map((slug) => ({ slug })) },
+      },
+    });
+    await prisma.supplierRate.deleteMany({ where: { supplierId: supplier.id } });
+    for (const rate of demo.rates) {
+      await prisma.supplierRate.create({
+        data: {
+          supplierId: supplier.id,
+          serviceSlug: rate.serviceSlug,
+          serviceName: rate.serviceName,
+          serviceType: rate.serviceType,
+          unit: rate.unit,
+          currency: rate.currency,
+          costCents: rate.costCents,
+          capacity: rate.capacity,
+          version: 1,
+          notes: rate.notes,
+        },
+      });
+      rateCount += 1;
+    }
+  }
+  console.log(`Demo suppliers seeded: ${demos.length} suppliers, ${rateCount} rates.`);
+}
+
+/**
+ * Marketplace pricing defaults (Phase 3). The 25% global markup and $1
+ * rounding increment are starting points — admin-changeable at any time.
+ * No active taxes are seeded; finance adds real ones when advised.
+ */
+async function seedMarketplacePricing() {
+  await prisma.markupRule.upsert({
+    where: { scope_scopeKey: { scope: "GLOBAL", scopeKey: "" } },
+    update: { mode: "PERCENT", percentBps: 2500, fixedCents: null, active: true },
+    create: { scope: "GLOBAL", scopeKey: "", mode: "PERCENT", percentBps: 2500, currency: "USD", active: true },
+  });
+  await prisma.siteSetting.upsert({
+    where: { key: "pricing.roundingIncrementCents" },
+    update: {},
+    create: { key: "pricing.roundingIncrementCents", value: "100" },
+  });
+  console.log("Marketplace pricing seeded: 25% global markup, $1 rounding.");
+}
+
 async function main() {
   await seedSettings();
   await seedCatalogue();
   await seedEditorial();
+  await seedSupplierTypes();
+  await seedDemoSuppliers();
+  await seedMarketplacePricing();
   console.log("Seed complete.");
 }
 

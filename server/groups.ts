@@ -17,7 +17,7 @@ export class GroupError extends Error {
 }
 
 // Bookings far enough along that the party is frozen.
-const GROUP_LOCKED = ["ON_SAFARI", "COMPLETED", "CANCELLED", "EXPIRED", "REFUNDED", "REFUND_PENDING"];
+const GROUP_LOCKED = ["IN_PROGRESS", "COMPLETED", "CANCELLED", "EXPIRED", "REFUNDED", "REFUND_PENDING"];
 
 export const groupInput = z.object({
   name: z.string().trim().min(2).max(160),

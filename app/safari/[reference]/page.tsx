@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PortalShell } from "@/components/portal/portal-shell";
+import { ClientQuote } from "@/components/portal/client-quote";
 import { SafariWorkspace } from "@/components/portal/safari-workspace";
 import { currentUser } from "@/lib/auth";
 import { requireBookingAccess } from "@/server/portal";
@@ -29,7 +30,8 @@ export default async function SafariPage({ params }: { params: Promise<{ referen
       <h1 className="type-h1 mt-2 max-w-3xl text-balance">
         {booking.tour?.title ?? "Custom journey"}
       </h1>
-      <div className="mt-6">
+      <div className="mt-6 grid gap-6">
+        <ClientQuote reference={booking.reference} />
         <SafariWorkspace booking={booking} />
       </div>
     </PortalShell>

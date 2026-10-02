@@ -26,7 +26,7 @@ export default async function DashboardPage() {
   const bookings = await listMyBookings(user);
   const upcoming =
     bookings.find((b) =>
-      ["HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP", "ON_SAFARI"].includes(b.status),
+      ["AWAITING_PAYMENT", "PARTIALLY_PAID", "CONFIRMED", "IN_PROGRESS"].includes(b.status),
     ) ?? bookings[0];
 
   return (

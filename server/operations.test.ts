@@ -42,7 +42,8 @@ async function staffBooking() {
     totalCents: 500_000,
     depositCents: 150_000,
   });
-  await setBookingStatus(admin, booking.id, "HOLD");
+  await setBookingStatus(admin, booking.id, "IN_REVIEW");
+  await setBookingStatus(admin, booking.id, "SUPPLIERS_PENDING");
   return booking;
 }
 

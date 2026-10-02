@@ -32,9 +32,10 @@ async function paidBooking(overrides: Record<string, unknown> = {}) {
     depositCents: 150_000,
     ...overrides,
   });
-  // Real flow: staff place a hold / accept the terms before money moves.
-  await setBookingStatus(admin, booking.id, "HOLD", "test setup");
-  await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT", "test setup");
+  // Real flow: staff walk the quote pipeline before money moves.
+  for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT"] as const) {
+    await setBookingStatus(admin, booking.id, status, "test setup");
+  }
   return prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
 }
 
@@ -63,9 +64,15 @@ describe("successful payments", () => {
 
     const fresh = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     expect(fresh.paidCents).toBe(150_000);
-    expect(fresh.status).toBe("CONFIRMED"); // deposit met
+    expect(fresh.status).toBe("PARTIALLY_PAID"); // deposit met, balance open
     const history = await prisma.bookingStatusHistory.findMany({ where: { bookingId: booking.id } });
-    expect(history.map((h) => h.to)).toContain("CONFIRMED");
+    expect(history.map((h) => h.to)).toContain("PARTIALLY_PAID");
+
+    const rest = await createPayment(null, guestArgs(booking, { amountCents: 350_000, kind: "BALANCE" }));
+    await applyWebhookEvent("mock", mockProvider.parseWebhookEvent(JSON.parse(mockProvider.settle(rest.providerRef as string, "succeeded")).body));
+    const done = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
+    expect(done.paidCents).toBe(500_000);
+    expect(done.status).toBe("CONFIRMED"); // paid in full
   });
 
   it("accepts partial payments without confirming", async () => {
@@ -78,13 +85,13 @@ describe("successful payments", () => {
     await applyWebhookEvent("mock", settle(first.providerRef as string));
     const mid = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     expect(mid.paidCents).toBe(50_000);
-    expect(mid.status).toBe("AWAITING_DEPOSIT"); // deposit not yet met
+    expect(mid.status).toBe("AWAITING_PAYMENT"); // deposit not yet met
 
     const second = await createPayment(null, guestArgs(booking, { amountCents: 100_000 }));
     await applyWebhookEvent("mock", settle(second.providerRef as string));
     const done = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
     expect(done.paidCents).toBe(150_000);
-    expect(done.status).toBe("CONFIRMED");
+    expect(done.status).toBe("PARTIALLY_PAID");
   });
 
   it("rejects overpayments and wrong currencies", async () => {

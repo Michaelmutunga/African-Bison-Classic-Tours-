@@ -4,11 +4,16 @@ import {
   AssignAdminForm,
   AssignSupplierButton,
   DocumentAttach,
+  DraftQuoteButton,
   InvoiceActions,
   MessageReply,
   NoteForm,
+  ProposeLinesButton,
+  QuoteActionButton,
+  QuoteEditForm,
   RefundButton,
   RemoveLineButton,
+  RequestSuppliersButton,
   ServiceLineForm,
   StatusButtons,
   TransferForm,
@@ -40,15 +45,17 @@ function fmtDay(value: Date | string | null): string {
 }
 
 const NEXT_ACTION: Record<string, string> = {
-  NEW: "Review the request, then start a quote draft",
-  INQUIRY: "Review the request, then start a quote draft",
-  QUOTE_DRAFT: "Cost the service lines and send the quote",
+  NEW: "Review the request or auto-propose service lines",
+  IN_REVIEW: "Request supplier availability, then draft the quote",
+  SUPPLIERS_PENDING: "Chase replies, then generate the quote draft",
+  QUOTE_DRAFT: "Review the draft, then approve it",
+  QUOTE_APPROVED: "Send the quote to the client",
   QUOTE_SENT: "Chase the client or record their answer",
-  HOLD: "Confirm availability and take the deposit",
-  AWAITING_DEPOSIT: "Record the deposit to confirm",
+  CLIENT_REVISION: "Fold in the changes and save a new draft",
+  AWAITING_PAYMENT: "Record the deposit",
+  PARTIALLY_PAID: "Chase the balance, then confirm",
   CONFIRMED: "Prepare pre-trip checklist and documents",
-  PRE_TRIP: "Final checks before wheels-up",
-  ON_SAFARI: "Monitor the trip, then complete it",
+  IN_PROGRESS: "Monitor the trip, then complete it",
   COMPLETED: "Closed — income realised",
   CANCELLED: "Closed — cancelled",
   EXPIRED: "Closed — expired",
@@ -326,28 +333,50 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
         <Card>
           <CardBody>
             <h3 className="type-h3">Quote</h3>
-            {booking.quote ? (
-              <div className="type-small mt-2">
-                <p>
-                  <Link href="/admin/quotes" className="underline underline-offset-4">{booking.quote.number}</Link>{" "}
-                  · {booking.quote.status.toLowerCase()} ·{" "}
-                  <span className="type-numeric">{formatMoney(booking.quote.totalCents, booking.quote.currency)}</span>
-                </p>
-                <ul className="mt-2 grid gap-1 text-ink/75">
-                  {booking.quote.items.map((item) => (
-                    <li key={item.id} className="flex justify-between gap-2">
-                      <span>{item.label} ×{item.quantity}</span>
-                      <span className="type-numeric">{formatMoney(item.totalCents, booking.quote?.currency ?? booking.currency)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
+            {booking.quoteVersions.length === 0 && !booking.quote ? (
               <p className="type-small mt-2 text-ink/60">
-                No quote yet. Versioned quote drafts with diffs arrive in the workflow phase —
-                the live service-line totals above are the costing basis.
+                No quote yet. Propose lines, hold suppliers, then generate the draft.
               </p>
-            )}
+            ) : null}
+            {booking.quoteVersions.length > 0 ? (
+              <ul className="type-small mt-2 grid gap-2">
+                {booking.quoteVersions.slice(0, 5).map((version) => (
+                  <li key={version.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-ink/10 pb-2">
+                    <span>
+                      <strong className="type-numeric">{booking.reference}-Q{version.version}</strong> ·{" "}
+                      {version.status.toLowerCase()} ·{" "}
+                      <span className="type-numeric">{formatMoney(version.totalCents, version.currency)}</span>
+                      {version.discountCents > 0 ? ` (incl. ${formatMoney(version.discountCents, version.currency)} off)` : ""}
+                      <span className="type-caption block text-ink/55">
+                        valid to {fmtDay(version.validUntil)}
+                        {version.revisionNotes ? ` · client asked: ${version.revisionNotes.slice(0, 120)}` : ""}
+                      </span>
+                    </span>
+                    <span className="flex gap-2">
+                      {version.status === "DRAFT" ? (
+                        <QuoteActionButton bookingId={booking.id} action="approve" label="Approve" />
+                      ) : null}
+                      {version.status === "APPROVED" ? (
+                        <QuoteActionButton bookingId={booking.id} action="send" label="Send to client" />
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <ProposeLinesButton bookingId={booking.id} />
+              <RequestSuppliersButton bookingId={booking.id} />
+              <DraftQuoteButton bookingId={booking.id} />
+            </div>
+            <div className="mt-3">
+              <QuoteEditForm bookingId={booking.id} />
+            </div>
+            {booking.quote ? (
+              <p className="type-small mt-3 text-ink/60">
+                Legacy quote {booking.quote.number} ({booking.quote.status.toLowerCase()}) superseded by the marketplace flow.
+              </p>
+            ) : null}
             <h3 className="type-h3 mt-5">Payments</h3>
             <dl className="type-small mt-2 grid gap-1 text-ink/80">
               <div className="flex justify-between gap-2"><dt>Priced total</dt><dd className="type-numeric">{formatMoney(pricing.totalClientCents, pricing.currency)}</dd></div>

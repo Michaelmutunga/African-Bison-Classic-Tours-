@@ -134,8 +134,8 @@ describe("marketplace submissions", () => {
   it("supports the NEW stage in the state machine", async () => {
     const booking = await submitMarketplaceBooking(null, tourSubmission());
     await expect(setBookingStatus(admin, booking.id, "CONFIRMED")).rejects.toThrow(BookingError);
-    await setBookingStatus(admin, booking.id, "HOLD", "reviewing");
+    await setBookingStatus(admin, booking.id, "IN_REVIEW", "reviewing");
     const fresh = await prisma.booking.findUniqueOrThrow({ where: { id: booking.id } });
-    expect(fresh.status).toBe("HOLD");
+    expect(fresh.status).toBe("IN_REVIEW");
   });
 });

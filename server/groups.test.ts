@@ -202,11 +202,9 @@ describe("group modification", () => {
 
   it("locks groups once underway", async () => {
     const { booking, me } = await ownerWithBooking();
-    await setBookingStatus(admin, booking.id, "HOLD");
-    await setBookingStatus(admin, booking.id, "AWAITING_DEPOSIT");
-    await setBookingStatus(admin, booking.id, "CONFIRMED");
-    await setBookingStatus(admin, booking.id, "PRE_TRIP");
-    await setBookingStatus(admin, booking.id, "ON_SAFARI");
+    for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "CONFIRMED", "IN_PROGRESS"] as const) {
+      await setBookingStatus(admin, booking.id, status);
+    }
     await expect(createGroup(me, booking.reference, { name: "Too late" })).rejects.toThrow(GroupError);
     await cleanup(me.id, booking.id);
   });

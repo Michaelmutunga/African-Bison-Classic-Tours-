@@ -1,16 +1,56 @@
-# Booking flow (Phase 6, marketplace track from Phase 4)
+# Booking flow (marketplace workflow, Phase 6)
 
 ## Lifecycle
 
 ```
-NEW → QUOTE_DRAFT → QUOTE_SENT → HOLD → AWAITING_DEPOSIT → CONFIRMED
-→ PRE_TRIP → ON_SAFARI → COMPLETED
+NEW → IN_REVIEW → SUPPLIERS_PENDING → QUOTE_DRAFT → QUOTE_APPROVED
+→ QUOTE_SENT → (CLIENT_REVISION ↩ QUOTE_DRAFT) → AWAITING_PAYMENT
+→ PARTIALLY_PAID → CONFIRMED → IN_PROGRESS → COMPLETED
 ```
 
-`NEW` is the marketplace entry state (every submission starts here with a
-dated `ABCT-YYYY-MM-DD-NNN` reference). Legacy `INQUIRY` rows keep their
-state and mirror `NEW`'s exits until the Phase 6 workflow migrates them
-with history rows.
+Side exits: `CANCELLED` (from any pre-travel state — releases holds and
+supplier locks), `EXPIRED` (re-enterable at `NEW`), `REFUND_PENDING →
+REFUNDED` (cancelled after payment).
+
+Legacy rows were remapped with their history intact (`INQUIRY→NEW`,
+`HOLD→SUPPLIERS_PENDING`, `AWAITING_DEPOSIT→AWAITING_PAYMENT`,
+`PRE_TRIP→CONFIRMED`, `ON_SAFARI→IN_PROGRESS`); retired enum values are
+gone from the schema. The migration is reversible via the history table.
+
+Every transition is validated against `TRANSITIONS` (`server/bookings.ts`)
+and recorded in `BookingStatusHistory` with actor, reason and timestamp.
+Illegal transitions throw — there is no back door.
+
+## Workflow automation (`server/workflow.ts`)
+
+1. **Propose** (`POST …/propose-lines`): the request auto-parses into
+   service lines (transfers, stays per destination, driver-guide) with
+   suggested suppliers; `NEW → IN_REVIEW`.
+2. **Request** (`POST …/request-suppliers`): supplier locks go `REQUESTED`
+   and each supplier gets an email with a single-purpose tokenized link
+   (`/supplier-response/[token]`, no login) to **accept → HELD**,
+   **decline → DECLINED**, or **counter** (stays requested, offer recorded).
+   Every reply notifies staff. `→ SUPPLIERS_PENDING`.
+3. **Draft** (`POST …/quote-draft`): requires every line HELD/CONFIRMED.
+   Client-safe snapshot (names, quantities, client prices — no suppliers,
+   costs or markup), taxes, validity, terms. Derived ref `{ref}-Qn`.
+4. **Edit** (`POST …/quotes`): every save mints a new version with a diff
+   (added/removed/changed lines, totals). Line changes happen on service
+   lines, then regenerate.
+5. **Approve → send** (`PATCH …/quotes`): `QUOTE_APPROVED → QUOTE_SENT`;
+   the client sees it in their safari portal and by email.
+6. **Client answers** (`/api/account/bookings/[ref]/quote`): accept sets
+   booking totals from the version snapshot (`→ AWAITING_PAYMENT`); change
+   requests return to `CLIENT_REVISION` with comments.
+7. **Expiry** (sweep): lapsed versions expire; `SENT` expiries release HELD
+   locks with a 48-hour admin warning beforehand.
+8. **Payment** (webhook-verified, idempotent): deposit → `PARTIALLY_PAID`,
+   full balance → `CONFIRMED` — locks flip `HELD → CONFIRMED`, payouts
+   schedule as `DUE`, suppliers get confirmations, the client gets receipt
+   + voucher, and the master calendar picks the dates up.
+9. **Pre-trip** (sweep): 7-day client + supplier reminders, 24-hour
+   supplier ping. **Post-trip**: `IN_PROGRESS → COMPLETED`, payouts stay
+   `DUE` until finance settles; income is realised on the summary.
 
 Side exits: `CANCELLED` (from any pre-travel state), `EXPIRED` (holds lapse
 or quotes die), `REFUND_PENDING → REFUNDED` (cancelled after payment —

@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import { Prisma, type BookingStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { formatMoney } from "@/lib/money";
 import { notify } from "@/server/notifications/dispatch";
 import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
 import { ConflictError, NotFoundError, type Actor } from "@/server/catalogue";
@@ -22,38 +21,42 @@ function gateStaff(actor: Actor | null): void {
 }
 
 // ---------------------------------------------------------------------------
-// State machine (§12). No arbitrary transitions — ever.
+// Marketplace state machine (Phase 6). No arbitrary transitions — ever.
+// Legacy rows were remapped with history (INQUIRY→NEW, HOLD→SUPPLIERS_PENDING,
+// AWAITING_DEPOSIT→AWAITING_PAYMENT, PRE_TRIP→CONFIRMED, ON_SAFARI→IN_PROGRESS).
 // ---------------------------------------------------------------------------
 
 export const TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
-  // NEW is the marketplace entry state (Phase 4). It mirrors INQUIRY until
-  // the full workflow machine lands (Phase 6 migrates legacy rows over).
-  NEW: ["QUOTE_DRAFT", "HOLD", "CANCELLED", "EXPIRED"],
-  INQUIRY: ["QUOTE_DRAFT", "HOLD", "CANCELLED", "EXPIRED"],
-  QUOTE_DRAFT: ["QUOTE_SENT", "HOLD", "CANCELLED", "EXPIRED"],
-  QUOTE_SENT: ["QUOTE_DRAFT", "HOLD", "AWAITING_DEPOSIT", "CANCELLED", "EXPIRED"],
-  HOLD: ["AWAITING_DEPOSIT", "CONFIRMED", "CANCELLED", "EXPIRED"],
-  AWAITING_DEPOSIT: ["CONFIRMED", "CANCELLED", "EXPIRED"],
-  CONFIRMED: ["PRE_TRIP", "CANCELLED"],
-  PRE_TRIP: ["ON_SAFARI", "CANCELLED"],
-  ON_SAFARI: ["COMPLETED"],
+  NEW: ["IN_REVIEW", "SUPPLIERS_PENDING", "CANCELLED", "EXPIRED"],
+  IN_REVIEW: ["SUPPLIERS_PENDING", "QUOTE_DRAFT", "CANCELLED", "EXPIRED"],
+  SUPPLIERS_PENDING: ["QUOTE_DRAFT", "CANCELLED", "EXPIRED"],
+  QUOTE_DRAFT: ["QUOTE_APPROVED", "CANCELLED", "EXPIRED"],
+  QUOTE_APPROVED: ["QUOTE_SENT", "QUOTE_DRAFT", "CANCELLED", "EXPIRED"],
+  QUOTE_SENT: ["AWAITING_PAYMENT", "CLIENT_REVISION", "CANCELLED", "EXPIRED"],
+  CLIENT_REVISION: ["QUOTE_DRAFT", "CANCELLED", "EXPIRED"],
+  AWAITING_PAYMENT: ["PARTIALLY_PAID", "CONFIRMED", "CANCELLED", "EXPIRED"],
+  PARTIALLY_PAID: ["CONFIRMED", "CANCELLED", "EXPIRED"],
+  CONFIRMED: ["IN_PROGRESS", "CANCELLED"],
+  IN_PROGRESS: ["COMPLETED"],
   COMPLETED: [],
   CANCELLED: [],
-  EXPIRED: ["INQUIRY", "HOLD"],
+  EXPIRED: ["NEW"],
   REFUND_PENDING: ["REFUNDED"],
   REFUNDED: [],
 };
 
-const MODIFIABLE = ["NEW", "INQUIRY", "HOLD", "AWAITING_DEPOSIT"] as const;
+const MODIFIABLE = ["NEW", "IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "CLIENT_REVISION"] as const;
 const CANCELLABLE: BookingStatus[] = [
   "NEW",
-  "INQUIRY",
+  "IN_REVIEW",
+  "SUPPLIERS_PENDING",
   "QUOTE_DRAFT",
+  "QUOTE_APPROVED",
   "QUOTE_SENT",
-  "HOLD",
-  "AWAITING_DEPOSIT",
+  "CLIENT_REVISION",
+  "AWAITING_PAYMENT",
+  "PARTIALLY_PAID",
   "CONFIRMED",
-  "PRE_TRIP",
 ];
 
 export function bookingReference(): string {
@@ -250,28 +253,7 @@ async function notifyBookingTransition(
       template: { name: "bookingCancelled", input: { name: booking.customerName, reference: booking.reference } },
       dedupeKey: `booking:${booking.id}:CANCELLED`,
     });
-  } else if (to === "PRE_TRIP") {
-    await notify({
-      event: "booking.pre_trip",
-      channels: ["EMAIL", "IN_APP"],
-      to: toCustomer,
-      bookingId: booking.id,
-      template: {
-        name: "preTripChecklist",
-        input: {
-          name: booking.customerName,
-          reference: booking.reference,
-          details: [
-            "Passport details for every traveller.",
-            "Final balance settled.",
-            dates ? `Travel dates confirmed: ${dates}.` : "Travel dates confirmed with your planner.",
-            `Total: ${formatMoney(booking.totalCents, booking.currency)}.`,
-          ],
-        },
-      },
-      dedupeKey: `booking:${booking.id}:PRE_TRIP`,
-    });
-  } else if (to === "ON_SAFARI") {
+  } else if (to === "IN_PROGRESS") {
     await notify({
       event: "trip.started",
       channels: ["EMAIL", "IN_APP"],
@@ -288,7 +270,7 @@ async function notifyBookingTransition(
           ],
         },
       },
-      dedupeKey: `booking:${booking.id}:ON_SAFARI`,
+      dedupeKey: `booking:${booking.id}:IN_PROGRESS`,
     });
   } else if (to === "COMPLETED") {
     await notify({
@@ -563,7 +545,7 @@ export async function createBooking(actor: Actor | null, input: unknown, now: Da
           );
         }
         if (data.holds.length > 0) {
-          await applyTransition(tx, booking.id, "HOLD", actor?.id ?? null, "Resources held");
+          await applyTransition(tx, booking.id, "SUPPLIERS_PENDING", actor?.id ?? null, "Resources held");
         }
         return tx.booking.findUniqueOrThrow({
           where: { id: booking.id },
@@ -695,6 +677,11 @@ export async function cancelBooking(
     await tx.booking.update({ where: { id }, data: { status: target } });
     await recordHistory(tx, id, fresh.status, target, actor?.id ?? null, reason ?? "Booking cancelled");
     await tx.hold.updateMany({ where: { bookingId: id, status: "ACTIVE" }, data: { status: "RELEASED" } });
+    // Supplier commitments release too; amendment re-requests them later.
+    await tx.supplierLock.updateMany({
+      where: { bookingRef: fresh.reference, status: { in: ["REQUESTED", "HELD", "CONFIRMED"] } },
+      data: { status: "RELEASED" },
+    });
     return tx.booking.findUniqueOrThrow({
       where: { id },
       include: { travellers: true, holds: true },
@@ -739,9 +726,9 @@ export async function sweepExpirations(now: Date = new Date()): Promise<{ holds:
       where: { status: "ACTIVE", expiresAt: { lt: now } },
       data: { status: "EXPIRED" },
     });
-    // Bookings stuck in HOLD with no live holds expire too.
+    // Bookings stuck in SUPPLIERS_PENDING with no live holds expire too.
     const candidates = await tx.booking.findMany({
-      where: { status: "HOLD" },
+      where: { status: "SUPPLIERS_PENDING" },
       select: { id: true, status: true },
     });
     let bookings = 0;
@@ -749,7 +736,7 @@ export async function sweepExpirations(now: Date = new Date()): Promise<{ holds:
       const live = await tx.hold.count({ where: { bookingId: candidate.id, status: "ACTIVE" } });
       if (live === 0) {
         await tx.booking.update({ where: { id: candidate.id }, data: { status: "EXPIRED" } });
-        await recordHistory(tx, candidate.id, "HOLD", "EXPIRED", null, "All holds expired");
+        await recordHistory(tx, candidate.id, "SUPPLIERS_PENDING", "EXPIRED", null, "All holds expired");
         bookings += 1;
       }
     }

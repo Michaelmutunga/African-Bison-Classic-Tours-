@@ -53,7 +53,7 @@ export default async function AdminDashboardPage() {
             <Badge tone={inbox.quotesAwaiting > 0 ? "sand" : "neutral"}>Quotes awaiting answer · {inbox.quotesAwaiting}</Badge>
           </Link>
           <Badge tone={inbox.supplierReplies > 0 ? "sand" : "neutral"}>Supplier replies pending · {inbox.supplierReplies}</Badge>
-          <Link href="/admin/bookings?status=AWAITING_DEPOSIT">
+          <Link href="/admin/bookings?status=AWAITING_PAYMENT">
             <Badge tone={inbox.paymentsOverdue > 0 ? "clay" : "neutral"}>Deposits overdue · {inbox.paymentsOverdue}</Badge>
           </Link>
         </div>

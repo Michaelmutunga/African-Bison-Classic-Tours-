@@ -41,12 +41,10 @@ test("guest pays deposit via mock callback, receipt follows", async ({ request }
   expect(created.status()).toBe(201);
   const { reference } = (await created.json()) as { reference: string };
   const bookingId = await lookupId(staff, reference, email);
-  const hold = await staff.patch(`/api/admin/bookings/${bookingId}`, { data: { status: "HOLD" } });
-  expect(hold.status()).toBe(200);
-  const awaiting = await staff.patch(`/api/admin/bookings/${bookingId}`, {
-    data: { status: "AWAITING_DEPOSIT" },
-  });
-  expect(awaiting.status()).toBe(200);
+  for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT"]) {
+    const moved = await staff.patch(`/api/admin/bookings/${bookingId}`, { data: { status } });
+    expect(moved.status(), status).toBe(200);
+  }
   await staff.dispose();
 
   const payment = await request.post("/api/payments", {
@@ -89,7 +87,7 @@ test("guest pays deposit via mock callback, receipt follows", async ({ request }
   );
   const booking = ((await lookup.json()) as { booking: { paidCents: number; status: string } }).booking;
   expect(booking.paidCents).toBe(150_000);
-  expect(booking.status).toBe("CONFIRMED");
+  expect(booking.status).toBe("PARTIALLY_PAID");
 
   const receipt = await request.get(
     `/api/payments/${createdPayment.id}/receipt?email=${email}`,
@@ -123,14 +121,10 @@ test("staff refunds reduce paid totals", async () => {
   });
   const { reference } = (await created.json()) as { reference: string };
   const bookingId = await lookupId(ctx, reference, email);
-  const awaiting = await ctx.patch(`/api/admin/bookings/${bookingId}`, {
-    data: { status: "HOLD" },
-  });
-  expect(awaiting.status()).toBe(200);
-  const awaiting2 = await ctx.patch(`/api/admin/bookings/${bookingId}`, {
-    data: { status: "AWAITING_DEPOSIT" },
-  });
-  expect(awaiting2.status()).toBe(200);
+  for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT"]) {
+    const moved = await ctx.patch(`/api/admin/bookings/${bookingId}`, { data: { status } });
+    expect(moved.status(), status).toBe(200);
+  }
 
   const payment = await ctx.post("/api/payments", {
     data: { bookingId, amountCents: 120_000, kind: "DEPOSIT", email },

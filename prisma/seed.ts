@@ -56,6 +56,10 @@ async function seedSettings() {
     ["business.phonePrimary", "+254734466432"],
     ["business.phoneSecondary", "+254111234567"],
     ["business.email", "info@africanbisonclassictours.com"],
+    // Marketplace quote defaults (Phase 6): starting points, admin-editable.
+    ["quote.validityDays", "14"],
+    ["quote.paymentTerms", "30% deposit on acceptance; balance due 30 days before travel."],
+    ["quote.cancellationTerms", "Free cancellation within 48 hours of acceptance; terms per service apply after suppliers confirm."],
   ];
   for (const [key, value] of settings) {
     await prisma.siteSetting.upsert({

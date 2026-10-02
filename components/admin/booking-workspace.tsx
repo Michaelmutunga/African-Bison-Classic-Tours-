@@ -545,3 +545,90 @@ export function RemoveLineButton({ bookingId, lineId }: { bookingId: string; lin
     </span>
   );
 }
+
+export function ProposeLinesButton({ bookingId }: { bookingId: string }) {
+  const { error, busy, run } = useAction();
+  return (
+    <span className="inline-flex items-center gap-2">
+      {error ? <span className="type-caption text-clay-deep">{error}</span> : null}
+      <Button size="sm" disabled={busy} onClick={() => run(() => api(`/api/admin/bookings/${bookingId}/propose-lines`, "POST"))}>
+        {busy ? <Spinner label="Proposing" /> : "Auto-propose service lines"}
+      </Button>
+    </span>
+  );
+}
+
+export function RequestSuppliersButton({ bookingId }: { bookingId: string }) {
+  const { error, busy, run } = useAction();
+  return (
+    <span className="inline-flex items-center gap-2">
+      {error ? <span className="type-caption text-clay-deep">{error}</span> : null}
+      <Button size="sm" disabled={busy} onClick={() => run(() => api(`/api/admin/bookings/${bookingId}/request-suppliers`, "POST", {}))}>
+        {busy ? <Spinner label="Requesting" /> : "Request availability (assigned lines)"}
+      </Button>
+    </span>
+  );
+}
+
+export function DraftQuoteButton({ bookingId }: { bookingId: string }) {
+  const { error, busy, run } = useAction();
+  return (
+    <span className="inline-flex items-center gap-2">
+      {error ? <span className="type-caption text-clay-deep">{error}</span> : null}
+      <Button size="sm" disabled={busy} onClick={() => run(() => api(`/api/admin/bookings/${bookingId}/quote-draft`, "POST"))}>
+        {busy ? <Spinner label="Drafting" /> : "Generate quote draft"}
+      </Button>
+    </span>
+  );
+}
+
+export function QuoteActionButton({ bookingId, action, label }: { bookingId: string; action: "approve" | "send"; label: string }) {
+  const { error, busy, run } = useAction();
+  return (
+    <span className="inline-flex items-center gap-2">
+      {error ? <span className="type-caption text-clay-deep">{error}</span> : null}
+      <Button size="sm" disabled={busy} onClick={() => run(() => api(`/api/admin/bookings/${bookingId}/quotes`, "PATCH", { action }))}>
+        {busy ? <Spinner label="Working" /> : label}
+      </Button>
+    </span>
+  );
+}
+
+export function QuoteEditForm({ bookingId }: { bookingId: string }) {
+  const { error, busy, run } = useAction();
+  const [discount, setDiscount] = useState("");
+  const [notes, setNotes] = useState("");
+  return (
+    <form
+      aria-label="Edit quote"
+      className="grid gap-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        void run(() =>
+          api(`/api/admin/bookings/${bookingId}/quotes`, "POST", {
+            ...(discount.trim() ? { discountCents: Math.max(0, Math.round(Number(discount))) } : {}),
+            ...(notes.trim() ? { notes: notes.trim() } : {}),
+          }).then(() => {
+            setDiscount("");
+            setNotes("");
+          }),
+        );
+      }}
+    >
+      <ActionError message={error} />
+      <div className="grid gap-2 sm:grid-cols-2">
+        <div>
+          <Label htmlFor={`quote-discount-${bookingId}`}>Discount, minor units (new version)</Label>
+          <Input id={`quote-discount-${bookingId}`} type="number" min={0} value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="e.g. 5000" />
+        </div>
+        <div>
+          <Label htmlFor={`quote-notes-${bookingId}`}>Planner notes</Label>
+          <Input id={`quote-notes-${bookingId}`} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. Balloon optional, not included" />
+        </div>
+      </div>
+      <Button type="submit" size="sm" disabled={busy}>
+        {busy ? <Spinner label="Saving" /> : "Save as new version"}
+      </Button>
+    </form>
+  );
+}

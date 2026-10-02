@@ -317,14 +317,16 @@ model QuoteItem {
 
 enum BookingStatus {
   NEW
-  INQUIRY
+  IN_REVIEW
+  SUPPLIERS_PENDING
   QUOTE_DRAFT
+  QUOTE_APPROVED
   QUOTE_SENT
-  HOLD
-  AWAITING_DEPOSIT
+  CLIENT_REVISION
+  AWAITING_PAYMENT
+  PARTIALLY_PAID
   CONFIRMED
-  PRE_TRIP
-  ON_SAFARI
+  IN_PROGRESS
   COMPLETED
   CANCELLED
   EXPIRED
@@ -368,7 +370,7 @@ model Booking {
   tour           TourProduct?  @relation(fields: [tourId], references: [id])
   quoteId        String?       @unique
   quote          Quote?        @relation(fields: [quoteId], references: [id])
-  status         BookingStatus @default(INQUIRY)
+  status         BookingStatus @default(NEW)
   currency       String        @default("USD")
   subtotalCents  Int           @default(0)
   discountCents  Int           @default(0)
@@ -407,6 +409,7 @@ model Booking {
   travellers     BookingTraveller[]
   holds          Hold[]
   serviceLines   ServiceLine[]
+  quoteVersions  QuoteVersion[]
   history        BookingStatusHistory[]
   payments       Payment[]
   messages       CustomerMessage[]
@@ -965,6 +968,11 @@ model SupplierLock {
   updatedAt  DateTime           @updatedAt
   tokens     SupplierToken[]
   serviceLines ServiceLine[]
+  // Supplier's reply to an availability request.
+  counterOfferCents Int?
+  counterCurrency   String?
+  responseNote      String?
+  respondedAt       DateTime?
 
   @@index([supplierId, status])
   @@index([supplierId, startsAt, endsAt])
@@ -1105,6 +1113,53 @@ model ServiceLine {
   @@unique([bookingId, seq])
   @@index([bookingId])
   @@index([supplierId])
+}
+
+// ---------------------------------------------------------------------------
+// Versioned marketplace quotes (Phase 6). Every admin save mints a new
+// version; the client only ever sees the latest SENT one, with client
+// prices and no supplier names, costs or markup. Derived traceability ref:
+// `{bookingRef}-Q{version}`.
+// ---------------------------------------------------------------------------
+
+enum QuoteVersionStatus {
+  DRAFT
+  APPROVED
+  SENT
+  ACCEPTED
+  REVISION_REQUESTED
+  EXPIRED
+  SUPERSEDED
+}
+
+model QuoteVersion {
+  id              String             @id @default(cuid())
+  bookingId       String
+  booking         Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  version         Int
+  status          QuoteVersionStatus @default(DRAFT)
+  currency        String             @default("USD")
+  // Client-safe line snapshots: name, quantity, client price. Never costs.
+  lines           Json
+  subtotalCents   Int
+  discountCents   Int                @default(0)
+  taxes           Json?
+  taxTotalCents   Int                @default(0)
+  totalCents      Int
+  depositCents    Int
+  // FX snapshot at version time.
+  fxRates         Json?
+  validUntil      DateTime
+  paymentTerms    String?
+  cancellationTerms String?
+  notes           String?
+  revisionNotes   String?
+  createdById     String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([bookingId, version])
+  @@index([bookingId, status])
 }
 
 // ---------------------------------------------------------------------------

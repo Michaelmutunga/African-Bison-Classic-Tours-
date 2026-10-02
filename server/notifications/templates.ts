@@ -176,6 +176,16 @@ export const templates = {
     ]);
     return { subject, html, text };
   },
+
+  supplierRequest(input: TemplateInput): RenderedTemplate {
+    const subject = `Availability request${input.reference ? ` (${input.reference})` : ""}`;
+    const { html, text } = layout("Can you hold these dates?", greetingFor(input), [
+      "African Bison Classic Tours would like to book your service for a client safari.",
+      ...(input.details ?? []),
+      "Accept, decline or counter-offer from the link below — no account needed, and the link works exactly once.",
+    ], input.ctaUrl ? { url: input.ctaUrl, label: input.ctaLabel ?? "Reply to this request" } : undefined);
+    return { subject, html, text };
+  },
 };
 
 export type TemplateName = keyof typeof templates;

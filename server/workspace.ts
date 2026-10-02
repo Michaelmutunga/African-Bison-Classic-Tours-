@@ -95,6 +95,7 @@ export async function bookingWorkspace(actor: Actor | null, id: string) {
       history: { orderBy: { createdAt: "asc" } },
       assignedAdmin: { select: { id: true, name: true, email: true, role: true } },
       quote: { include: { items: true } },
+      quoteVersions: { orderBy: { version: "desc" } },
       serviceLines: {
         orderBy: { seq: "asc" },
         include: { supplier: { select: { id: true, name: true, status: true, rating: true } }, rate: true, lock: true },
@@ -159,10 +160,10 @@ export async function inboxCounts(actor: Actor | null, now: Date = new Date()): 
     prisma.booking.count({ where: { status: "NEW" } }),
     prisma.booking.count({ where: { status: "QUOTE_SENT" } }),
     prisma.supplierLock.count({ where: { status: "REQUESTED" } }),
-    prisma.booking.count({ where: { status: "AWAITING_DEPOSIT", createdAt: { lt: overdueCutoff } } }),
+    prisma.booking.count({ where: { status: { in: ["AWAITING_PAYMENT", "PARTIALLY_PAID"] }, createdAt: { lt: overdueCutoff } } }),
     prisma.booking.findMany({
       where: {
-        status: { in: ["CONFIRMED", "PRE_TRIP", "ON_SAFARI"] },
+        status: { in: ["CONFIRMED", "IN_PROGRESS"] },
         travelStart: { gte: now, lt: soonCutoff },
       },
       orderBy: { travelStart: "asc" },

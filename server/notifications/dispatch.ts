@@ -172,7 +172,7 @@ export async function sendTripReminders(now: Date = new Date()): Promise<number>
   const to = new Date(now.getTime() + 8 * 86_400_000);
   const bookings = await prisma.booking.findMany({
     where: {
-      status: { in: ["CONFIRMED", "PRE_TRIP"] },
+      status: "CONFIRMED",
       travelStart: { gte: from, lt: to },
     },
     select: { id: true, reference: true, customerName: true, customerEmail: true, userId: true, travelStart: true },
@@ -197,7 +197,7 @@ export async function sendTripReminders(now: Date = new Date()): Promise<number>
 export async function sendBalanceReminders(now: Date = new Date()): Promise<number> {
   const stale = new Date(now.getTime() - 3 * 86_400_000);
   const bookings = await prisma.booking.findMany({
-    where: { status: "AWAITING_DEPOSIT", createdAt: { lt: stale } },
+    where: { status: { in: ["AWAITING_PAYMENT", "PARTIALLY_PAID"] }, createdAt: { lt: stale } },
     select: { id: true, reference: true, customerName: true, customerEmail: true, userId: true, totalCents: true, paidCents: true, currency: true },
   });
   let sent = 0;

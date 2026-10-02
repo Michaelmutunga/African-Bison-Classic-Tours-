@@ -87,7 +87,7 @@ test("guest can cancel with email proof; staff advances lifecycle", async () => 
   });
   expect(bad.status()).toBe(422);
 
-  for (const status of ["HOLD", "AWAITING_DEPOSIT", "CONFIRMED", "PRE_TRIP", "ON_SAFARI", "COMPLETED"]) {
+  for (const status of ["IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "AWAITING_PAYMENT", "PARTIALLY_PAID", "CONFIRMED", "IN_PROGRESS", "COMPLETED"]) {
     const moved = await ctx.patch(`/api/admin/bookings/${booking.id}`, { data: { status } });
     expect(moved.status(), status).toBe(200);
   }

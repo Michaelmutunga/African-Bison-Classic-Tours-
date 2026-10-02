@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { applyBps, BASE_CURRENCY, DEPOSIT_BPS } from "@/lib/money";
-import { ForbiddenError, UnauthorizedError, hasPermission } from "@/lib/permissions";
+import { ForbiddenError, UnauthorizedError, canSeeFinance, hasPermission } from "@/lib/permissions";
 import { ConflictError, NotFoundError, type Actor } from "@/server/catalogue";
 import { recordAudit } from "@/server/operations";
 
@@ -35,6 +35,12 @@ export class MarketplacePricingError extends Error {
 function gateOps(actor: Actor | null): void {
   if (!actor) throw new UnauthorizedError();
   if (!hasPermission(actor.role, "bookings.write")) throw new ForbiddenError("bookings.write");
+}
+
+/** Markup rules are markup data: super admin, admin and finance only. */
+function gateMarkup(actor: Actor | null): void {
+  if (!actor) throw new UnauthorizedError();
+  if (!hasPermission(actor.role, "finance.read")) throw new ForbiddenError("finance.read");
 }
 
 // ---------------------------------------------------------------------------
@@ -323,12 +329,12 @@ export const markupRuleInput = z.object({
 });
 
 export async function listMarkupRules(actor: Actor | null) {
-  gateOps(actor);
+  gateMarkup(actor);
   return prisma.markupRule.findMany({ orderBy: [{ scope: "asc" }, { scopeKey: "asc" }] });
 }
 
 export async function upsertMarkupRule(actor: Actor | null, input: unknown) {
-  gateOps(actor);
+  gateMarkup(actor);
   const data = markupRuleInput.parse(input);
   if (data.mode === "PERCENT" && data.percentBps === undefined) {
     throw new MarketplacePricingError("Percent rules need percentBps");
@@ -377,7 +383,7 @@ export async function upsertMarkupRule(actor: Actor | null, input: unknown) {
 }
 
 export async function deleteMarkupRule(actor: Actor | null, id: string) {
-  gateOps(actor);
+  gateMarkup(actor);
   const rule = await prisma.markupRule.findUnique({ where: { id } });
   if (!rule) throw new NotFoundError("Markup rule");
   if (rule.scope === "GLOBAL") {
@@ -847,9 +853,12 @@ export async function updateServiceLine(actor: Actor | null, id: string, input: 
 /**
  * Booking-level money summary from stored lines. Pure read — booking rows
  * carry no cost fields, so client payloads can never leak them.
+ * Cost, income and margin are nulled for roles without finance.read;
+ * client prices and taxes stay visible so agents can sell and operate.
  */
 export async function bookingPricingSummary(actor: Actor | null, bookingId: string) {
   gateOps(actor);
+  const finance = canSeeFinance(actor?.role);
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: { serviceLines: { orderBy: { seq: "asc" } } },
@@ -866,13 +875,38 @@ export async function bookingPricingSummary(actor: Actor | null, bookingId: stri
   return {
     reference: booking.reference,
     currency: booking.currency,
-    lines: booking.serviceLines,
-    totalCostCents: cost,
+    lines: booking.serviceLines.map((line) => redactServiceLine(line, finance)),
+    totalCostCents: finance ? cost : null,
     totalClientCents: client + taxTotal,
-    totalIncomeCents: client + taxTotal - cost,
-    blendedMarginBps: marginBps(cost, client + taxTotal),
+    totalIncomeCents: finance ? client + taxTotal - cost : null,
+    blendedMarginBps: finance ? marginBps(cost, client + taxTotal) : null,
     taxes,
     taxTotalCents: taxTotal,
+  };
+}
+
+/**
+ * Strip supplier cost, income, markup and FX from a service line for roles
+ * without finance.read. Client price stays — agents need it to sell.
+ */
+export function redactServiceLine<T extends {
+  costCents: number;
+  fxRate: unknown;
+  markupBps: number | null;
+  markupFixedCents: number | null;
+  markupRuleId: string | null;
+  incomeCents: number;
+}>(line: T, finance: boolean) {
+  if (finance) return { ...line, redacted: false as const };
+  return {
+    ...line,
+    costCents: null,
+    fxRate: null,
+    markupBps: null,
+    markupFixedCents: null,
+    markupRuleId: null,
+    incomeCents: null,
+    redacted: true as const,
   };
 }
 
@@ -886,9 +920,11 @@ export async function removeServiceLine(actor: Actor | null, id: string) {
 
 export async function listServiceLines(actor: Actor | null, bookingId: string) {
   gateOps(actor);
-  return prisma.serviceLine.findMany({
+  const finance = canSeeFinance(actor?.role);
+  const lines = await prisma.serviceLine.findMany({
     where: { bookingId },
     orderBy: { seq: "asc" },
     include: { supplier: { select: { name: true } }, rate: true },
   });
+  return lines.map((line) => redactServiceLine(line, finance));
 }

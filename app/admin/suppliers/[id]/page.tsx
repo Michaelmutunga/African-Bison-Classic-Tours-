@@ -75,7 +75,9 @@ export default async function AdminSupplierDetailPage({ params }: { params: Prom
                             {rate.validTo ? " · closed" : ""}
                           </span>
                         </TableCell>
-                        <TableCell>{formatMoney(rate.costCents, rate.currency)}</TableCell>
+                        <TableCell>
+                          {rate.costCents !== null ? formatMoney(rate.costCents, rate.currency) : <span className="text-ink/55">Restricted</span>}
+                        </TableCell>
                         <TableCell>{rate.capacity ?? "—"}</TableCell>
                         <TableCell>v{rate.version}</TableCell>
                       </tr>

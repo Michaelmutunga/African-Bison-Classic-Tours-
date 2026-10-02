@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/lib/auth";
-import { hasPermission } from "@/lib/permissions";
+import { canSeeFinance, hasPermission } from "@/lib/permissions";
 import { Container } from "@/components/ui/layout";
 import { cn } from "@/lib/cn";
 
@@ -17,6 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/login?next=/admin");
   }
   const canCatalogue = hasPermission(user.role, "catalogue.write");
+  const finance = canSeeFinance(user.role);
   const links = [
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/bookings", label: "Bookings" },
@@ -28,10 +29,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     ...(canCatalogue ? [{ href: "/admin/media", label: "Media" }] : []),
     ...(canCatalogue ? [{ href: "/admin/settings", label: "Settings" }] : []),
     { href: "/admin/quotes", label: "Quotes" },
-    { href: "/admin/pricing", label: "Pricing" },
+    ...(finance ? [{ href: "/admin/pricing", label: "Pricing" }] : []),
     { href: "/admin/invoices", label: "Invoices" },
     { href: "/admin/payments", label: "Payments" },
-    { href: "/admin/reports", label: "Reports" },
+    ...(finance ? [{ href: "/admin/reports", label: "Reports" }] : []),
     { href: "/admin/travellers", label: "Travellers" },
     { href: "/admin/fleet", label: "Fleet & guides" },
     { href: "/admin/suppliers", label: "Suppliers" },

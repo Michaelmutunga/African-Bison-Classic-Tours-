@@ -1,7 +1,7 @@
 import { Prisma, type BookingStatus, type SupplierLockStatus, type SupplierStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { ForbiddenError, UnauthorizedError, hasPermission } from "@/lib/permissions";
+import { ForbiddenError, UnauthorizedError, canSeeFinance, hasPermission } from "@/lib/permissions";
 import { ConflictError, NotFoundError, slugify, type Actor } from "@/server/catalogue";
 import { recordAudit } from "@/server/operations";
 import {
@@ -25,12 +25,10 @@ function gateOps(actor: Actor | null): void {
   if (!hasPermission(actor.role, "bookings.write")) throw new ForbiddenError("bookings.write");
 }
 
-/** Only finance-visible roles may decrypt payout details. */
+/** Only super admin, admin and finance see cost, markup and margin data. */
 function gateFinance(actor: Actor | null): void {
   if (!actor) throw new UnauthorizedError();
-  if (actor.role !== "SUPER_ADMIN" && actor.role !== "ADMIN" && actor.role !== "FINANCE_USER") {
-    throw new ForbiddenError("bookings.write");
-  }
+  if (!hasPermission(actor.role, "finance.read")) throw new ForbiddenError("finance.read");
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +179,7 @@ export async function updateSupplier(actor: Actor | null, id: string, input: unk
 
 export async function getSupplier(actor: Actor | null, id: string) {
   gateOps(actor);
+  const finance = canSeeFinance(actor?.role);
   const supplier = await prisma.supplier.findUnique({
     where: { id },
     select: {
@@ -192,7 +191,13 @@ export async function getSupplier(actor: Actor | null, id: string) {
     },
   });
   if (!supplier) throw new NotFoundError("Supplier");
-  return supplier;
+  return { ...supplier, rates: supplier.rates.map((rate) => redactRate(rate, finance)) };
+}
+
+/** Strip rate costs for roles without finance.read. */
+export function redactRate<T extends { costCents: number }>(rate: T, finance: boolean) {
+  if (finance) return { ...rate, redacted: false as const };
+  return { ...rate, costCents: null, redacted: true as const };
 }
 
 export async function listSuppliers(
@@ -375,10 +380,12 @@ export async function updateSupplierRate(actor: Actor | null, rateId: string, in
 
 export async function listSupplierRates(actor: Actor | null, supplierId: string, currentOnly = true) {
   gateOps(actor);
-  return prisma.supplierRate.findMany({
+  const finance = canSeeFinance(actor?.role);
+  const rates = await prisma.supplierRate.findMany({
     where: { supplierId, ...(currentOnly ? { validTo: null } : {}) },
     orderBy: [{ serviceSlug: "asc" }, { version: "desc" }],
   });
+  return rates.map((rate) => redactRate(rate, finance));
 }
 
 // ---------------------------------------------------------------------------
@@ -789,7 +796,8 @@ export interface SupplierSuggestion {
   serviceSlug: string;
   unit: string;
   currency: string;
-  costCents: number;
+  /** Nulled for roles without finance.read (sorting still cost-aware). */
+  costCents: number | null;
   capacity: number | null;
   freeUnits: number | null;
   version: number;
@@ -797,6 +805,7 @@ export interface SupplierSuggestion {
 
 export async function suggestSuppliers(actor: Actor | null, input: unknown): Promise<SupplierSuggestion[]> {
   gateOps(actor);
+  const finance = canSeeFinance(actor?.role);
   const data = suggestInput.parse(input);
   const startsAt = new Date(data.startsAt);
   const endsAt = new Date(data.endsAt);
@@ -832,15 +841,15 @@ export async function suggestSuppliers(actor: Actor | null, input: unknown): Pro
         serviceSlug: rate.serviceSlug,
         unit: rate.unit,
         currency: rate.currency,
-        costCents: rate.costCents,
+        costCents: finance ? rate.costCents : null,
         capacity: rate.capacity,
         freeUnits,
         version: rate.version,
       });
     }
   }
-  // Cheapest first; best-rated breaks ties.
-  suggestions.sort((a, b) => a.costCents - b.costCents || (b.rating ?? 0) - (a.rating ?? 0));
+  // Cheapest first; best-rated breaks ties (redacted costs sort last).
+  suggestions.sort((a, b) => (a.costCents ?? Infinity) - (b.costCents ?? Infinity) || (b.rating ?? 0) - (a.rating ?? 0));
   return suggestions;
 }
 

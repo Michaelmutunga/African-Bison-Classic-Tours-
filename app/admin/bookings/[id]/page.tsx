@@ -205,11 +205,17 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
         <CardBody>
           <h3 className="type-h3">Service lines ({detailLines.length})</h3>
           <p className="type-small mt-1 text-ink/70">
-            Cost, client price and margin per line. Totals: cost{" "}
-            <strong className="type-numeric">{formatMoney(pricing.totalCostCents, pricing.currency)}</strong> ·
-            client <strong className="type-numeric">{formatMoney(pricing.totalClientCents, pricing.currency)}</strong> ·
-            income <strong className="type-numeric">{formatMoney(pricing.totalIncomeCents, pricing.currency)}</strong> ·
-            margin {formatPct(pricing.blendedMarginBps)}
+            {workspace.finance ? (
+              <>
+                Cost, client price and margin per line. Totals: cost{" "}
+                <strong className="type-numeric">{pricing.totalCostCents !== null ? formatMoney(pricing.totalCostCents, pricing.currency) : "—"}</strong> ·
+                client <strong className="type-numeric">{formatMoney(pricing.totalClientCents, pricing.currency)}</strong> ·
+                income <strong className="type-numeric">{pricing.totalIncomeCents !== null ? formatMoney(pricing.totalIncomeCents, pricing.currency) : "—"}</strong> ·
+                margin {pricing.blendedMarginBps !== null ? formatPct(pricing.blendedMarginBps) : "—"}
+              </>
+            ) : (
+              <>Client prices per line — cost and margin are finance-visible only.</>
+            )}
           </p>
           {detailLines.length === 0 ? (
             <div className="mt-3">
@@ -242,13 +248,25 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
                         <span className="type-caption block text-ink/55">{line.location ?? "no location"}</span>
                       </TableCell>
                       <TableCell>{line.supplier?.name ?? <span className="text-ink/55">unassigned</span>}</TableCell>
-                      <TableCell><span className="type-numeric">{formatMoney(line.costCents, line.currency)}</span></TableCell>
+                      <TableCell>
+                        {line.costCents !== null ? (
+                          <span className="type-numeric">{formatMoney(line.costCents, line.currency)}</span>
+                        ) : (
+                          <span className="text-ink/55">Restricted</span>
+                        )}
+                      </TableCell>
                       <TableCell><span className="type-numeric">{formatMoney(line.clientPriceCents, line.currency)}</span></TableCell>
                       <TableCell>
-                        <span className="type-numeric">{formatMoney(line.clientPriceCents - line.costCents, line.currency)}</span>
-                        <span className="type-caption block text-ink/55">
-                          {formatPct(line.clientPriceCents > 0 ? Math.round(((line.clientPriceCents - line.costCents) / line.clientPriceCents) * 10_000) : 0)}
-                        </span>
+                        {line.costCents !== null ? (
+                          <>
+                            <span className="type-numeric">{formatMoney(line.clientPriceCents - line.costCents, line.currency)}</span>
+                            <span className="type-caption block text-ink/55">
+                              {formatPct(line.clientPriceCents > 0 ? Math.round(((line.clientPriceCents - line.costCents) / line.clientPriceCents) * 10_000) : 0)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-ink/55">Restricted</span>
+                        )}
                       </TableCell>
                       <TableCell>{line.lock ? <Badge tone="sand">{line.lock.status}</Badge> : <span className="text-ink/55">—</span>}</TableCell>
                       <TableCell><RemoveLineButton bookingId={booking.id} lineId={line.id} /></TableCell>
@@ -266,7 +284,11 @@ export default async function AdminBookingPage({ params }: { params: Promise<{ i
                         <li key={match.rateId} className="flex flex-wrap items-center justify-between gap-2">
                           <span>
                             {match.supplierName}{match.rating ? ` (${match.rating}/5)` : ""} ·{" "}
-                            {formatMoney(match.costCents, match.currency)} {match.unit.replaceAll("_", " ").toLowerCase()}
+                            {match.costCents !== null ? (
+                              <>{formatMoney(match.costCents, match.currency)} {match.unit.replaceAll("_", " ").toLowerCase()}</>
+                            ) : (
+                              <>{match.unit.replaceAll("_", " ").toLowerCase()} (cost restricted)</>
+                            )}
                             {match.freeUnits !== null ? ` · ${match.freeUnits} free` : ""}
                           </span>
                           <AssignSupplierButton

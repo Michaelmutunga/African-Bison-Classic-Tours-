@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { ForbiddenError, UnauthorizedError, hasPermission } from "@/lib/permissions";
+import { ForbiddenError, UnauthorizedError, canSeeFinance, hasPermission } from "@/lib/permissions";
 import { NotFoundError, type Actor } from "@/server/catalogue";
-import { bookingPricingSummary } from "@/server/marketplace-pricing";
+import { bookingPricingSummary, redactServiceLine } from "@/server/marketplace-pricing";
 import { formatMoney } from "@/lib/money";
 
 /**
@@ -128,7 +128,12 @@ export async function bookingWorkspace(actor: Actor | null, id: string) {
   const paid = payments
     .filter((p) => p.status === "SUCCEEDED")
     .reduce((sum, p) => sum + p.amountCents, 0);
-  return { booking, pricing, payments, invoices, documents, messages, notes, locks, timeline, pastBookings, paidCents: paid };
+  const finance = canSeeFinance(actor?.role);
+  return {
+    booking: { ...booking, serviceLines: booking.serviceLines.map((line) => redactServiceLine(line, finance)) },
+    finance,
+    pricing, payments, invoices, documents, messages, notes, locks, timeline, pastBookings, paidCents: paid,
+  };
 }
 
 export async function listStaff(actor: Actor | null) {

@@ -10,7 +10,7 @@ import {
   devSecurityHeaders,
   securityHeaders,
 } from "@/lib/security-headers";
-import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
+import { ForbiddenError, UnauthorizedError, canSeeFinance, hasPermission } from "@/lib/permissions";
 import { errorResponse } from "@/server/http";
 import { templates } from "@/server/notifications/templates";
 import { createTestUser, unique } from "@/tests/db";
@@ -142,6 +142,48 @@ describe("malformed payment webhooks", () => {
       routeArgs,
     );
     expect(binary.status).toBe(401);
+  });
+});
+
+describe("marketplace boundaries", () => {
+  it("grants finance visibility to super admin, admin and finance only", () => {
+    for (const role of ["SUPER_ADMIN", "ADMIN", "FINANCE_USER"] as const) {
+      expect(canSeeFinance(role)).toBe(true);
+    }
+    for (const role of ["SAFARI_CONSULTANT", "RESERVATION_STAFF", "OPERATIONS_MANAGER", "CONTENT_MANAGER", "CUSTOMER", undefined] as const) {
+      expect(canSeeFinance(role)).toBe(false);
+    }
+    // Booking agents operate trips but never see money internals.
+    expect(hasPermission("RESERVATION_STAFF", "bookings.write")).toBe(true);
+    expect(hasPermission("RESERVATION_STAFF", "finance.read")).toBe(false);
+    // Finance reads money but cannot write bookings or manage users.
+    expect(hasPermission("FINANCE_USER", "finance.read")).toBe(true);
+    expect(hasPermission("FINANCE_USER", "bookings.write")).toBe(false);
+    expect(hasPermission("FINANCE_USER", "users.manage")).toBe(false);
+  });
+
+  it("keeps the audit log append-only (no update/delete call sites)", async () => {
+    const { readFileSync, readdirSync, statSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const roots = ["server", "lib", "app", "components", "scripts", "prisma"];
+    const offenders: string[] = [];
+    const walk = (dir: string) => {
+      for (const entry of readdirSync(dir)) {
+        const path = join(dir, entry);
+        if (statSync(path).isDirectory()) {
+          if (entry === "node_modules") continue;
+          walk(path);
+          continue;
+        }
+        if (!/\.(ts|tsx)$/.test(entry) || entry.endsWith(".test.ts")) continue;
+        const source = readFileSync(path, "utf8");
+        if (/auditLog\.(update|updateMany|delete|deleteMany|upsert)\b/.test(source)) {
+          offenders.push(path);
+        }
+      }
+    };
+    for (const root of roots) walk(root);
+    expect(offenders).toEqual([]);
   });
 });
 

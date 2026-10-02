@@ -2,7 +2,7 @@ import { z } from "zod";
 import { formatInTimeZone } from "date-fns-tz";
 import { prisma } from "@/lib/prisma";
 import { applyBps } from "@/lib/money";
-import { ForbiddenError, UnauthorizedError } from "@/lib/permissions";
+import { ForbiddenError, UnauthorizedError, hasPermission } from "@/lib/permissions";
 import type { Actor } from "@/server/catalogue";
 import { BOOKING_REFERENCE_TIMEZONE } from "@/server/booking-references";
 
@@ -25,9 +25,7 @@ export class ReportError extends Error {
 
 function gateFinance(actor: Actor | null): void {
   if (!actor) throw new UnauthorizedError();
-  if (actor.role !== "SUPER_ADMIN" && actor.role !== "ADMIN" && actor.role !== "FINANCE_USER") {
-    throw new ForbiddenError("bookings.write");
-  }
+  if (!hasPermission(actor.role, "finance.read")) throw new ForbiddenError("finance.read");
 }
 
 export const reportFilterInput = z.object({

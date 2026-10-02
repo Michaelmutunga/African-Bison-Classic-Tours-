@@ -36,6 +36,9 @@ Deploys trigger automatically on pushes to `main`.
 | `RESEND_API_KEY`       | _optional_ — without it, emails record FAILED, nothing breaks |
 | `RESEND_FROM`          | _optional, with the key above_                              |
 | `MOCK_PROVIDER_SECRET` | **required** — `openssl rand -hex 32` (mock webhook signer) |
+| `SUPPLIER_PII_KEY`     | **required** — `openssl rand -hex 32` (AES-256-GCM for supplier payout details; without it supplier create/update with payout details fails closed) |
+| `WHATSAPP_HOOK_URL`    | _optional_ — staff submission alerts POST here when set |
+| `WHATSAPP_HOOK_SECRET` | _optional, with the hook above_ (HMAC-SHA256 signer) |
 | `ADMIN_*`              | _not needed on Railway_ — bootstrap locally (below)         |
 
 Never commit real values. `.env.example` documents the same contract.

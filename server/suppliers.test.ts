@@ -349,8 +349,7 @@ describe("supplier tokens", () => {
   });
 });
 
-describe("master calendar", () => {
-  async function calendarBooking(location: string, start: string, end: string) {
+describe("master calendar", () => {  async function calendarBooking(location: string, start: string, end: string) {
     const booking = await prisma.booking.create({
       data: {
         reference: `ABCT-2033-01-01-${unique("cal").slice(-3)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -477,5 +476,23 @@ beforeAll(async () => {
     where: { slug: TYPE },
     update: { active: true },
     create: { slug: TYPE, name: "Airport pickup / transfer", active: true },
+  });
+});
+
+describe("finance gating", () => {
+  it("hides rate costs from booking agents", async () => {
+    const supplier = await demoSupplier({ coverageAreas: ["Nairobi"] });
+    await demoRate(supplier.id, { costCents: 5_000 });
+    const window = { startsAt: "2034-01-10T06:00:00Z", endsAt: "2034-01-11T18:00:00Z" };
+    const agentSuggestions = await suggestSuppliers(agent, { serviceType: TYPE, location: "Nairobi", ...window });
+    expect(agentSuggestions.length).toBeGreaterThan(0);
+    expect(agentSuggestions.every((s) => s.costCents === null)).toBe(true);
+    const adminSuggestions = await suggestSuppliers(admin, { serviceType: TYPE, location: "Nairobi", ...window });
+    expect(adminSuggestions.some((s) => typeof s.costCents === "number")).toBe(true);
+
+    const agentRates = await listSupplierRates(agent, supplier.id);
+    expect(agentRates.every((r) => r.costCents === null)).toBe(true);
+    const adminRates = await listSupplierRates(admin, supplier.id);
+    expect(adminRates.every((r) => typeof r.costCents === "number")).toBe(true);
   });
 });

@@ -1,11 +1,13 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { ForbiddenError } from "@/lib/permissions";
 import {
   addServiceLine,
   bookingPricingSummary,
   convertCost,
   deleteMarkupRule,
   formatPct,
+  listMarkupRules,
   listServiceLines,
   marginBps,
   markupAmount,
@@ -25,6 +27,17 @@ import { createSupplier, createSupplierRate } from "@/server/suppliers";
 import { testActor, unique } from "@/tests/db";
 
 const admin = testActor("ADMIN");
+const agent = testActor("RESERVATION_STAFF");
+const finance = testActor("FINANCE_USER");
+
+async function gatedBooking(currency = "USD") {
+  return createBooking(null, {
+    customerName: "Pricing Test",
+    customerEmail: `${unique("pricing")}@example.com`,
+    currency,
+    adults: 2,
+  });
+}
 
 const GLOBAL = { mode: "PERCENT" as const, percentBps: 2500 };
 
@@ -340,8 +353,7 @@ describe("rules and service lines", () => {
     expect(Number(created.fxRate)).toBe(1);
   });
 
-  it("manages taxes as separate active lines", async () => {
-    const booking = await pricedBooking();
+  it("manages taxes as separate active lines", async () => {    const booking = await pricedBooking();
     await addServiceLine(admin, booking.id, {
       serviceName: "Taxed line",
       serviceType: "airport-transfer",
@@ -394,5 +406,39 @@ describe("rules and service lines", () => {
     expect(listed[0]).toMatchObject({ seq: 1, costCents: 8_000, clientPriceCents: 10_000 });
     await removeServiceLine(admin, listed[1]?.id as string);
     expect(await listServiceLines(admin, booking.id)).toHaveLength(1);
+  });
+});
+
+describe("finance gating", () => {
+  it("redacts cost, income and margin for booking agents", async () => {
+    const booking = await gatedBooking();
+    await addServiceLine(admin, booking.id, {
+      serviceName: "Gated line",
+      serviceType: "airport-transfer",
+      costCents: 8_000,
+      currency: "USD",
+      unit: "PER_TRANSFER",
+    });
+    // Agents can still operate lines and see client prices.
+    const summary = await bookingPricingSummary(agent, booking.id);
+    expect(summary.lines[0]?.clientPriceCents).toBe(10_000);
+    expect(summary.lines[0]?.costCents).toBeNull();
+    expect(summary.lines[0]).toMatchObject({ redacted: true });
+    expect(summary.totalClientCents).toBe(10_000);
+    expect(summary.totalCostCents).toBeNull();
+    expect(summary.totalIncomeCents).toBeNull();
+    expect(summary.blendedMarginBps).toBeNull();
+    const listed = await listServiceLines(agent, booking.id);
+    expect(listed[0]?.costCents).toBeNull();
+    expect(listed[0]?.incomeCents).toBeNull();
+    // Finance sees the full trail.
+    const full = await bookingPricingSummary(admin, booking.id);
+    expect(full.totalCostCents).toBe(8_000);
+    expect(full.totalIncomeCents).toBe(2_000);
+  });
+
+  it("restricts markup rules to finance roles", async () => {
+    await expect(listMarkupRules(agent)).rejects.toThrow(ForbiddenError);
+    await expect(listMarkupRules(finance)).resolves.toBeDefined();
   });
 });

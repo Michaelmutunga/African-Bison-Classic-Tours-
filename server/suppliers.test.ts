@@ -18,6 +18,7 @@ import {
   listSupplierPayouts,
   listSupplierRates,
   listSuppliers,
+  marketplaceCalendar,
   mintSupplierResponseToken,
   recordSupplierPayout,
   revealSupplierPayout,
@@ -345,6 +346,108 @@ describe("supplier tokens", () => {
     await expect(verifySupplierToken(`supt_${randomBytes(24).toString("hex")}`)).rejects.toThrow(
       NotFoundError,
     );
+  });
+});
+
+describe("master calendar", () => {
+  async function calendarBooking(location: string, start: string, end: string) {
+    const booking = await prisma.booking.create({
+      data: {
+        reference: `ABCT-2033-01-01-${unique("cal").slice(-3)}${Math.floor(Math.random() * 90 + 10)}`,
+        customerName: "Calendar Guest",
+        customerEmail: `${unique("cal")}@example.com`,
+        status: "CONFIRMED",
+        travelStart: new Date(start),
+        travelEnd: new Date(end),
+        adults: 2,
+      },
+    });
+    return booking;
+  }
+
+  it("lists bookings by travel date with filters and supplier names", async () => {
+    const supplier = await demoSupplier({ coverageAreas: ["Mara"] });
+    const booking = await calendarBooking("Mara", "2033-06-10T00:00:00Z", "2033-06-15T00:00:00Z");
+    await prisma.serviceLine.create({
+      data: {
+        bookingId: booking.id,
+        seq: 1,
+        serviceName: "Stay in Mara",
+        serviceType: "hotel-lodge-camp",
+        supplierId: supplier.id,
+        quantity: 1,
+        unit: "PER_PERSON_PER_NIGHT",
+        currency: "USD",
+        costCents: 1000,
+        markupMode: "PERCENT",
+        markupBps: 2500,
+        markupSource: "GLOBAL",
+        clientPriceCents: 1250,
+        incomeCents: 250,
+        location: "Mara",
+      },
+    });
+    const view = await marketplaceCalendar(admin, new Date("2033-06-01T00:00:00Z"), new Date("2033-07-01T00:00:00Z"), {});
+    expect(view.bookings.some((b) => b.reference === booking.reference)).toBe(true);
+    const entry = view.bookings.find((b) => b.reference === booking.reference);
+    expect(entry?.supplierNames).toContain(supplier.name);
+
+    const byStatus = await marketplaceCalendar(admin, new Date("2033-06-01T00:00:00Z"), new Date("2033-07-01T00:00:00Z"), { status: "NEW" });
+    expect(byStatus.bookings.some((b) => b.reference === booking.reference)).toBe(false);
+    const bySupplier = await marketplaceCalendar(admin, new Date("2033-06-01T00:00:00Z"), new Date("2033-07-01T00:00:00Z"), { supplierId: supplier.id });
+    expect(bySupplier.bookings.some((b) => b.reference === booking.reference)).toBe(true);
+    const byLocation = await marketplaceCalendar(admin, new Date("2033-06-01T00:00:00Z"), new Date("2033-07-01T00:00:00Z"), { location: "Mara" });
+    expect(byLocation.bookings.some((b) => b.reference === booking.reference)).toBe(true);
+    const elsewhere = await marketplaceCalendar(admin, new Date("2033-06-01T00:00:00Z"), new Date("2033-07-01T00:00:00Z"), { location: "Diani" });
+    expect(elsewhere.bookings.some((b) => b.reference === booking.reference)).toBe(false);
+  });
+
+  it("links commitments back to bookings", async () => {
+    const supplier = await demoSupplier();
+    const rate = await demoRate(supplier.id, { capacity: 10 });
+    const booking = await calendarBooking("Nairobi", "2033-08-10T00:00:00Z", "2033-08-12T00:00:00Z");
+    const lock = await createSupplierLock(admin, {
+      rateId: rate.id,
+      bookingRef: booking.reference,
+      startsAt: "2033-08-10T06:00:00Z",
+      endsAt: "2033-08-11T18:00:00Z",
+    });
+    const view = await marketplaceCalendar(admin, new Date("2033-08-01T00:00:00Z"), new Date("2033-09-01T00:00:00Z"), { supplierId: supplier.id });
+    const commitment = view.commitments.find((c) => c.lockId === lock.id);
+    expect(commitment?.bookingRef).toBe(booking.reference);
+    expect(commitment?.bookingId).toBe(booking.id);
+    expect(view.conflicts).toHaveLength(0);
+  });
+
+  it("warns when overlapping locks exceed capacity", async () => {
+    const supplier = await demoSupplier();
+    const rate = await demoRate(supplier.id, { capacity: 2 });
+    const window = { startsAt: "2033-09-10T06:00:00Z", endsAt: "2033-09-12T18:00:00Z" };
+    // Lock 1 (qty 1) + lock 2 would exceed: create lock 2 directly to simulate
+    // two separately-approved commitments colliding.
+    await createSupplierLock(admin, { rateId: rate.id, quantity: 1, ...window });
+    await prisma.supplierLock.create({
+      data: {
+        supplierId: supplier.id,
+        rateId: rate.id,
+        serviceName: "Forced overlap",
+        serviceType: "airport-transfer",
+        startsAt: new Date(window.startsAt),
+        endsAt: new Date(window.endsAt),
+        quantity: 2,
+        status: "CONFIRMED",
+      },
+    });
+    const view = await marketplaceCalendar(admin, new Date("2033-09-01T00:00:00Z"), new Date("2033-10-01T00:00:00Z"), { supplierId: supplier.id });
+    expect(view.conflicts).toHaveLength(1);
+    expect(view.conflicts[0]?.overBy).toBe(1);
+    expect(view.conflicts[0]?.supplierId).toBe(supplier.id);
+  });
+
+  it("rejects nonsense windows and filters", async () => {
+    await expect(
+      marketplaceCalendar(admin, new Date("2033-10-02T00:00:00Z"), new Date("2033-10-01T00:00:00Z"), {}),
+    ).rejects.toThrow();
   });
 });
 

@@ -16,7 +16,11 @@ Roles: `SUPER_ADMIN`, `ADMIN`, `CONTENT_MANAGER` (write + publish),
 
 - `/admin` — dashboard with real counts; pipeline links filter `/admin/bookings`.
 - `/admin/bookings` — pipeline board; `/admin/bookings/[id]` — full workspace.
-- `/admin/calendar?month=N` — bookings, transfers, holds with conflict flags.
+- `/admin/calendar?month=N` — bookings, transfers, holds with conflict flags,
+  plus marketplace views: bookings by travel date (filterable by status,
+  supplier, service type, location) and supplier commitments (who is locked
+  on which days, linked back to the booking) with over-capacity warnings
+  from live lock math.
 - `/admin/fleet` — vehicles and guides (delete blocked while assigned).
 - `/admin/transfers`, `/admin/travellers`, `/admin/quotes`, `/admin/invoices`,
   `/admin/payments`, `/admin/inquiries`, `/admin/notifications`,

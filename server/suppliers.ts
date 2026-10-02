@@ -1,4 +1,4 @@
-import { Prisma, type SupplierLockStatus, type SupplierStatus } from "@prisma/client";
+import { Prisma, type BookingStatus, type SupplierLockStatus, type SupplierStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ForbiddenError, UnauthorizedError, hasPermission } from "@/lib/permissions";
@@ -577,6 +577,194 @@ export async function supplierCalendar(actor: Actor | null, supplierId: string, 
     startsAt: lock.startsAt.toISOString(),
     endsAt: lock.endsAt.toISOString(),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Master calendar (Phase 7): bookings by travel date + supplier commitments
+// with capacity-conflict warnings. Every event links back to its booking.
+// ---------------------------------------------------------------------------
+
+export interface CalendarBookingEvent {
+  id: string;
+  reference: string;
+  customerName: string;
+  status: string;
+  startsAt: string;
+  endsAt: string | null;
+  supplierNames: string[];
+}
+
+export interface CalendarCommitment {
+  lockId: string;
+  supplierId: string;
+  supplierName: string;
+  serviceName: string;
+  serviceType: string;
+  status: SupplierLockStatus;
+  quantity: number;
+  capacity: number | null;
+  startsAt: string;
+  endsAt: string;
+  bookingRef: string | null;
+  bookingId: string | null;
+  location: string | null;
+}
+
+export interface CapacityConflict {
+  supplierId: string;
+  supplierName: string;
+  serviceName: string;
+  overBy: number;
+  startsAt: string;
+  endsAt: string;
+  bookingRefs: string[];
+}
+
+export const calendarFilterInput = z.object({
+  supplierId: z.string().cuid().optional(),
+  serviceType: z.string().trim().max(80).optional(),
+  location: z.string().trim().max(80).optional(),
+  status: z.string().trim().max(30).optional(),
+  lockStatus: z.string().trim().max(30).optional(),
+});
+
+export async function marketplaceCalendar(
+  actor: Actor | null,
+  from: Date,
+  to: Date,
+  filters: unknown = {},
+): Promise<{ bookings: CalendarBookingEvent[]; commitments: CalendarCommitment[]; conflicts: CapacityConflict[] }> {
+  gateOps(actor);
+  const filter = calendarFilterInput.parse(filters);
+  if (!(from < to)) throw new SupplierError("Calendar window must end after it starts");
+  const BOOKING_STATUSES = ["NEW", "IN_REVIEW", "SUPPLIERS_PENDING", "QUOTE_DRAFT", "QUOTE_APPROVED", "QUOTE_SENT", "CLIENT_REVISION", "AWAITING_PAYMENT", "PARTIALLY_PAID", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "EXPIRED", "REFUND_PENDING", "REFUNDED"];
+  const LOCK_STATUSES = ["REQUESTED", "HELD", "CONFIRMED", "DECLINED", "RELEASED", "COMPLETED"];
+  if (filter.status && !BOOKING_STATUSES.includes(filter.status)) {
+    throw new SupplierError(`Unknown booking status: ${filter.status}`);
+  }
+  if (filter.lockStatus && !LOCK_STATUSES.includes(filter.lockStatus)) {
+    throw new SupplierError(`Unknown lock status: ${filter.lockStatus}`);
+  }
+
+  const [bookingRows, lockRows, lines] = await Promise.all([
+    prisma.booking.findMany({
+      where: {
+        travelStart: { lt: to },
+        OR: [{ travelEnd: { gt: from } }, { travelEnd: null, travelStart: { gte: from, lt: to } }],
+        status: { notIn: ["CANCELLED", "EXPIRED"] },
+        ...(filter.status ? { status: filter.status as BookingStatus } : {}),
+        ...(filter.supplierId ? { serviceLines: { some: { supplierId: filter.supplierId } } } : {}),
+      },
+      orderBy: { travelStart: "asc" },
+      take: 500,
+      select: {
+        id: true,
+        reference: true,
+        customerName: true,
+        status: true,
+        travelStart: true,
+        travelEnd: true,
+        serviceLines: { select: { supplier: { select: { name: true } } } },
+      },
+    }),
+    prisma.supplierLock.findMany({
+      where: {
+        startsAt: { lt: to },
+        endsAt: { gt: from },
+        ...(filter.supplierId ? { supplierId: filter.supplierId } : {}),
+        ...(filter.serviceType ? { serviceType: filter.serviceType } : {}),
+        ...(filter.lockStatus ? { status: filter.lockStatus as SupplierLockStatus } : {}),
+      },
+      orderBy: { startsAt: "asc" },
+      take: 500,
+      include: { supplier: { select: { id: true, name: true } }, rate: true },
+    }),
+    prisma.serviceLine.findMany({
+      where: { lockId: { not: null } },
+      select: { lockId: true, location: true },
+    }),
+  ]);
+
+  const bookingIdsByRef = new Map<string, string>();
+  for (const row of bookingRows) bookingIdsByRef.set(row.reference, row.id);
+  const refsNeeded = [...new Set(lockRows.map((l) => l.bookingRef).filter((r): r is string => !!r && !bookingIdsByRef.has(r)))];
+  if (refsNeeded.length > 0) {
+    const extra = await prisma.booking.findMany({
+      where: { reference: { in: refsNeeded } },
+      select: { id: true, reference: true },
+    });
+    for (const row of extra) bookingIdsByRef.set(row.reference, row.id);
+  }
+  const locationByLock = new Map(lines.map((l) => [l.lockId as string, l.location]));
+
+  let bookings: CalendarBookingEvent[] = bookingRows.map((b) => ({
+    id: b.id,
+    reference: b.reference,
+    customerName: b.customerName,
+    status: b.status,
+    startsAt: (b.travelStart as Date | null)?.toISOString() ?? "",
+    endsAt: b.travelEnd?.toISOString() ?? null,
+    supplierNames: [...new Set(b.serviceLines.map((l) => l.supplier?.name).filter((n): n is string => !!n))],
+  }));
+  if (filter.location) {
+    const refsInArea = new Set(
+      (await prisma.serviceLine.findMany({
+        where: { location: { contains: filter.location, mode: "insensitive" } },
+        select: { bookingId: true },
+      })).map((l) => l.bookingId),
+    );
+    bookings = bookings.filter((b) => refsInArea.has(b.id));
+  }
+
+  const commitments: CalendarCommitment[] = lockRows.map((lock) => ({
+    lockId: lock.id,
+    supplierId: lock.supplier.id,
+    supplierName: lock.supplier.name,
+    serviceName: lock.serviceName,
+    serviceType: lock.serviceType,
+    status: lock.status,
+    quantity: lock.quantity,
+    capacity: lock.rate?.capacity ?? null,
+    startsAt: lock.startsAt.toISOString(),
+    endsAt: lock.endsAt.toISOString(),
+    bookingRef: lock.bookingRef,
+    bookingId: lock.bookingRef ? (bookingIdsByRef.get(lock.bookingRef) ?? null) : null,
+    location: locationByLock.get(lock.id) ?? null,
+  }));
+
+  // Capacity conflicts: sweep occupying locks per supplier+service.
+  const conflicts: CapacityConflict[] = [];
+  const groups = new Map<string, typeof lockRows>();
+  for (const lock of lockRows) {
+    if (!OCCUPYING.includes(lock.status) || lock.rate?.capacity == null) continue;
+    const key = `${lock.supplierId}:${lock.rate.serviceSlug}`;
+    const list = groups.get(key) ?? [];
+    list.push(lock);
+    groups.set(key, list);
+  }
+  for (const [, group] of groups) {
+    const points = [...new Set(group.flatMap((l) => [l.startsAt.getTime(), l.endsAt.getTime()]))].sort((a, b) => a - b);
+    const capacity = group[0]?.rate?.capacity ?? 0;
+    for (let i = 0; i < points.length - 1; i++) {
+      const start = points[i] as number;
+      const end = points[i + 1] as number;
+      const active = group.filter((l) => l.startsAt.getTime() < end && l.endsAt.getTime() > start);
+      const used = active.reduce((sum, l) => sum + l.quantity, 0);
+      if (used > capacity) {
+        conflicts.push({
+          supplierId: group[0]?.supplierId as string,
+          supplierName: group[0]?.supplier.name as string,
+          serviceName: group[0]?.serviceName as string,
+          overBy: used - capacity,
+          startsAt: new Date(start).toISOString(),
+          endsAt: new Date(end).toISOString(),
+          bookingRefs: [...new Set(active.map((l) => l.bookingRef).filter((r): r is string => !!r))],
+        });
+      }
+    }
+  }
+
+  return { bookings, commitments, conflicts };
 }
 
 // ---------------------------------------------------------------------------
